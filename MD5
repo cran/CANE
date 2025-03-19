@@ -1,0 +1,12 @@
+98c31d575e421610dc09d4dcbc955750 *DESCRIPTION
+5f2377d88de38a4e26de0986d9e2ccfd *NAMESPACE
+7390f027623372bb939d9421c862dcf7 *R/PooledCRD.R
+5d05bd91952dcfa4cefedd6213ad278a *R/PooledLSD.R
+6e22a7f8d9a68c48e3eb521d854a7ab7 *R/PooledRBD.R
+46b5a025db1c678c458fec1c18d0e1b7 *R/PooledSPD.R
+d82e48a9b292b7bb0b595c61ba8c408b *R/PooledStPD.R
+b38f89b4af21febabcd2a8a3fd7bd0e5 *man/PooledCRD.Rd
+ef47912334e34a0220c5e3588afbf863 *man/PooledLSD.Rd
+a8bce4143dafe96af410dcede59e218e *man/PooledRBD.Rd
+d4fee51e3b186b3d1e3f66fcc9c76e06 *man/PooledSPD.Rd
+8e6dc26d2a6d8e51af35fc3e329b95a4 *man/PooledStPD.Rd
