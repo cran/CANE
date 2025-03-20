@@ -31,7 +31,7 @@
 #' @importFrom stats as.formula residuals var
 #' @importFrom stats ave deviance df.residual formula resid
 #' @examples
-#' # Creating a sample dataset for Pooled Split Plot Design (SPD)
+#' # Creating a sample dataset for Pooled Strip Plot Design (StPD)
 #' df <- data.frame(
 #'   Location = factor(rep(c("Londan", "Agumbe"), each = 12)),  # Locations
 #'   Replication = factor(rep(c(1, 2), each = 6, times = 2)),  # Replications
@@ -43,8 +43,8 @@
 #'             5100, 5165, 4965, 5113, 5086, 5176)  # Yield values
 #' )
 #' 
-#' # Running PooledSPD function on the dataset
-#' out <- PooledSPD(df, "Yield", "Location", "Replication", "RowFactor", "ColumnFactor", 0.05, 1)
+#' # Running PooledStPD function on the dataset
+#' out <- PooledStPD(df, "Yield", "Location", "Replication", "RowFactor", "ColumnFactor", 0.05, 1)
 #' 
 #' # Print results
 #' print(out)

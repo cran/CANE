@@ -31,7 +31,7 @@
 #' @importFrom stats as.formula residuals var
 #' @importFrom stats ave deviance df.residual formula resid
 #' @examples
-#' # Creating a sample dataset for Pooled Randomized Block Design (RBD)
+#' # Creating a sample dataset for Pooled Completely Randomized Design (CRD)
 #' df <- data.frame(
 #'   Loc = factor(rep(c("L1", "L2"), each = 9)),  # Locations
 #'   Treatment = factor(rep(c("T1", "T2", "T3"), times = 6)),  # Treatments
@@ -39,7 +39,7 @@
 #'             18, 5, 11, 7, 19, 21, 22, 9, 14)  # Yield values
 #' )
 #' 
-#' # Running PooledRBD function on the dataset
+#' # Running PooledCRD function on the dataset
 #' out <- PooledCRD(df, "Yield", "Loc", "Treatment", 0.05, 1)
 #' 
 #' # Print results

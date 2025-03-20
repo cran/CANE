@@ -51,7 +51,7 @@ A list containing the following components:
 This function conducts a pooled analysis of variance (ANOVA) using the strip plot design (StPD) for data collected across multiple locations or years. In this design, the interaction between factors (RowFactor and ColumnFactor) is estimated with higher precision. For more details see Dean et al. (2017)<doi:10.1007/978-3-319-52250-0> and Ruíz et al. (2024)<doi:10.1007/978-3-031-65575-3>.
 }
 \examples{
-# Creating a sample dataset for Pooled Split Plot Design (SPD)
+# Creating a sample dataset for Pooled Strip Plot Design (StPD)
 df <- data.frame(
   Location = factor(rep(c("Londan", "Agumbe"), each = 12)),  # Locations
   Replication = factor(rep(c(1, 2), each = 6, times = 2)),  # Replications
@@ -63,8 +63,8 @@ df <- data.frame(
             5100, 5165, 4965, 5113, 5086, 5176)  # Yield values
 )
 
-# Running PooledSPD function on the dataset
-out <- PooledSPD(df, "Yield", "Location", "Replication", "RowFactor", "ColumnFactor", 0.05, 1)
+# Running PooledStPD function on the dataset
+out <- PooledStPD(df, "Yield", "Location", "Replication", "RowFactor", "ColumnFactor", 0.05, 1)
 
 # Print results
 print(out)

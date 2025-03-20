@@ -38,7 +38,7 @@ A list containing the following components:
 This function performs pooled analysis of variance (ANOVA) using the completely randomized design (CRD) for multiple locations or years. For more details see Montgomery (2017), Dean et al. (2017)<doi:10.1007/978-3-319-52250-0> and Ruíz et al. (2024)<doi:10.1007/978-3-031-65575-3>.
 }
 \examples{
-# Creating a sample dataset for Pooled Randomized Block Design (RBD)
+# Creating a sample dataset for Pooled Completely Randomized Design (CRD)
 df <- data.frame(
   Loc = factor(rep(c("L1", "L2"), each = 9)),  # Locations
   Treatment = factor(rep(c("T1", "T2", "T3"), times = 6)),  # Treatments
@@ -46,7 +46,7 @@ df <- data.frame(
             18, 5, 11, 7, 19, 21, 22, 9, 14)  # Yield values
 )
 
-# Running PooledRBD function on the dataset
+# Running PooledCRD function on the dataset
 out <- PooledCRD(df, "Yield", "Loc", "Treatment", 0.05, 1)
 
 # Print results

@@ -2,7 +2,7 @@ Package: CANE
 Type: Package
 Title: Comprehensive Groups of Experiments Analysis for Numerous
         Environments
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(
     person(family = "Vinayaka",
            role = c("aut", "cre"),
@@ -42,7 +42,7 @@ Encoding: UTF-8
 Depends: R (>= 4.0.0)
 RoxygenNote: 7.3.2
 NeedsCompilation: no
-Packaged: 2025-03-18 14:47:42 UTC; DELL
+Packaged: 2025-03-20 08:44:51 UTC; DELL
 Author: Vinayaka [aut, cre] (<https://orcid.org/0000-0001-5004-0084>),
   T. Lakshmi Pathy [aut, ctb] (<https://orcid.org/0000-0001-8940-7971>),
   K. Gopalareddy [aut, ctb] (<https://orcid.org/0000-0002-8825-6363>),
@@ -53,4 +53,4 @@ Author: Vinayaka [aut, cre] (<https://orcid.org/0000-0001-5004-0084>),
     (<https://orcid.org/0000-0001-5285-9827>),
   L.N. Vinaykumar [aut, ctb]
 Repository: CRAN
-Date/Publication: 2025-03-19 13:30:05 UTC
+Date/Publication: 2025-03-20 13:50:13 UTC
