@@ -1,0 +1,17 @@
+citHeader("To cite the CANE package in publications use:")
+
+bibentry(
+  bibtype  = "Manual",
+  title    = "CANE: Comprehensive Groups of Experiments Analysis for Numerous Environments",
+  author   = c(person(family = "Vinayaka"),
+               person(given = "T.", family = "Lakshmi Pathy"),
+               person(given = "Gopalareddy", family = "Krishnappa"),
+               person(given = "Shweta", family = "Kumari"),
+               person(given = "P.", family = "Murali"),
+               person(given = "P.", family = "Govindaraj"),
+               person(given = "P. Rama Chandra", family = "Prasad"),
+               person(given = "L.N.", family = "Vinaykumar")),
+  year     = "2026",
+  note     = "R package version 0.2.0",
+  url      = "https://CRAN.R-project.org/package=CANE"
+)

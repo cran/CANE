@@ -1,143 +1,172 @@
-#' @title Pooled Strip Plot Design Analysis
-#' @description This function conducts a pooled analysis of variance (ANOVA) using the strip plot design (StPD) for data collected across multiple locations or years. In this design, the interaction between factors (RowFactor and ColumnFactor) is estimated with higher precision. For more details see Dean et al. (2017)<doi:10.1007/978-3-319-52250-0> and Ruíz et al. (2024)<doi:10.1007/978-3-031-65575-3>.
-#' @param data A data frame containing the experimental data.
-#' @param Response A numeric variable representing the dependent variable (response).
-#' @param Location A factor indicating different locations or years.
-#' @param Replication A factor indicating replications.
-#' @param RowFactor A factor used for horizontal strips.
-#' @param ColumnFactor A factor used for vertical strips.
-#' @param alpha A numeric value specifying the significance level for Bartlett’s test.
-#' @param Mult_Comp_Test An integer specifying the type of multiple comparison test:
-#'   \itemize{
-#'     \item 1 = Tukey's honestly significant difference (Tukey's HSD) test
-#'     \item 2 = Duncan's multiple range test (DMRT)
-#'     \item 3 = least significant difference (LSD) test
-#'   }
-#' @return A list containing the following components:
-#' \itemize{
-#'   \item \strong{Individual_ANOVA}: Summary of ANOVA results for each location or year.
-#'   \item \strong{Location_wise}: Multiple comparisons of interaction of RowFactor and ColumnFactor within each location or year.
-#'   \item \strong{Bartlett_Test}: Results of Bartlett's test for homogeneity of variances.
-#'   \item \strong{Pooled_ANOVA}: Combined (pooled) ANOVA table across all locations or years.
-#'   \item \strong{Interaction_Comparison}: Summary of pooled interaction of RowFactor and ColumnFactor comparisons using the selected multiple comparison test..
-#' }
-#' @references Dean A, Voss D, Draguljic D (2017)<doi:10.1007/978-3-319-52250-0>.
+#' @title Pooled Analysis of a Series of Strip Plot Designs
 #'
-#' Ruíz JS, López OAM, Crossa J (2024)<doi:10.1007/978-3-031-65575-3>.
-#' @importFrom agricolae HSD.test duncan.test LSD.test
-#' @importFrom dplyr mutate filter
-#' @importFrom emmeans emmeans
-#' @importFrom stats aov anova lm bartlett.test
-#' @importFrom stats as.formula residuals var
-#' @importFrom stats ave deviance df.residual formula resid
+#' @description
+#' Performs the classical pooled analysis of variance for a strip plot (split
+#' block) design repeated over several environments, with three error strata
+#' handled explicitly.
+#'
+#' @details
+#' In a strip plot design the two factors are applied in perpendicular strips,
+#' which creates \strong{three} error terms: a row strip error, a column strip
+#' error and an intersection error. The row factor must be tested against the
+#' row strip error \eqn{Environment \times Replication \times Row}, the column
+#' factor against the column strip error
+#' \eqn{Environment \times Replication \times Column}, and their interaction
+#' against the intersection (residual) error. The interaction is therefore
+#' estimated with the greatest precision, which is the characteristic merit of
+#' the design.
+#'
+#' With \eqn{l} environments, \eqn{r} replications, \eqn{a} row levels and
+#' \eqn{b} column levels the three errors carry \eqn{l(r-1)(a-1)},
+#' \eqn{l(r-1)(b-1)} and \eqn{l(r-1)(a-1)(b-1)} degrees of freedom.
+#'
+#' Homogeneity of error variances is assessed for all three strata: the main
+#' Bartlett test uses the intersection error mean squares, and the row strip
+#' and column strip error mean squares are tested separately and reported in
+#' \code{Bartlett_Test$other_strata}.
+#'
+#' Aitken's transformation, when applied, divides each observation by the
+#' square root of the \emph{intersection error mean square} of its own
+#' environment, matching the definition used by the other functions in the
+#' package. The lookup is by environment label, so it is unaffected by the row
+#' order of \code{data}.
+#'
+#' @inheritParams PooledCRD
+#' @param Replication Character string naming the replication factor.
+#' @param RowFactor Character string naming the factor applied in horizontal
+#'   strips.
+#' @param ColumnFactor Character string naming the factor applied in vertical
+#'   strips.
+#'
+#' @return An object of class \code{"cane"}. The structure is as described in
+#'   \code{\link{PooledCRD}}, except that \code{Location_wise} and
+#'   \code{Treatments_Comparison} are each a list with components
+#'   \code{RowFactor}, \code{ColumnFactor} and \code{Interaction}, computed
+#'   from the row strip, column strip and intersection error strata
+#'   respectively.
+#'
+#' @inherit PooledCRD references
+#' @seealso \code{\link{PooledCRD}}, \code{\link{PooledRBD}},
+#'   \code{\link{PooledLSD}}, \code{\link{PooledSPD}}
+#'
 #' @examples
-#' # Creating a sample dataset for Pooled Strip Plot Design (StPD)
-#' df <- data.frame(
-#'   Location = factor(rep(c("Londan", "Agumbe"), each = 12)),  # Locations
-#'   Replication = factor(rep(c(1, 2), each = 6, times = 2)),  # Replications
-#'   RowFactor = factor(rep(c(1, 2), each = 3, times = 4)),  # Row factor
-#'   ColumnFactor = factor(rep(1:3, times = 8)),  # Column factor
-#'   Yield = c(4940, 4810, 5150, 4900, 4920, 5070, 
-#'             4830, 5110, 4920, 5020, 5110, 5230,
-#'             4964, 4997, 5011, 5102, 4858, 4888, 
-#'             5100, 5165, 4965, 5113, 5086, 5176)  # Yield values
-#' )
-#' 
-#' # Running PooledStPD function on the dataset
-#' out <- PooledStPD(df, "Yield", "Location", "Replication", "RowFactor", "ColumnFactor", 0.05, 1)
-#' 
-#' # Print results
-#' print(out)
+#' data(stpd_example)
+#' out <- PooledStPD(stpd_example, Response = "Yield", Location = "Location",
+#'                   Replication = "Replication", RowFactor = "RowFactor",
+#'                   ColumnFactor = "ColumnFactor", alpha = 0.05,
+#'                   Mult_Comp_Test = 1)
+#' out
+#' out$Pooled_ANOVA
+#'
 #' @export
-PooledStPD <- function(data, Response, Location, Replication, RowFactor, ColumnFactor, alpha, Mult_Comp_Test) {
-  # Ensure categorical variables are factors
-  data[[Location]]        <- factor(data[[Location]])
-  data[[RowFactor]]   <- factor(data[[RowFactor]])
-  data[[ColumnFactor]]<- factor(data[[ColumnFactor]])
-  data[[Replication]] <- factor(data[[Replication]])
+PooledStPD <- function(data, Response, Location, Replication, RowFactor,
+                       ColumnFactor, alpha = 0.05, Mult_Comp_Test = 1,
+                       transform = c("auto", "always", "never"),
+                       env_effect = c("fixed", "random")) {
 
-  # Individual ANOVA by Location or Year
-  Result1 <- by(data, data[[Location]], function(subdata) {
-    # Within each location: strip-plot ANOVA
-    aov(formula(paste(Response, "~", Replication, "+", RowFactor, "+",
-                      Replication, ":", RowFactor, "+", ColumnFactor, "+",
-                      Replication, ":", ColumnFactor, "+", RowFactor, ":", ColumnFactor)),
-        data = subdata)
-  })
-  Result1 <- as.list(Result1)
+  env_effect <- match.arg(env_effect)
+  chk <- .cane_check(data, Response,
+                     c(Location = Location, Replication = Replication,
+                       RowFactor = RowFactor, ColumnFactor = ColumnFactor),
+                     alpha, Mult_Comp_Test, transform)
+  dat <- chk$data
+  .cane_check_balance(dat, Location, c(Replication, RowFactor, ColumnFactor),
+                      "replication-by-row-by-column")
 
-  # Bartlett’s Test for homogeneity of variances across locations
-  residuals_list  <- lapply(Result1, resid)  # residuals per location
-  residuals_values<- unlist(residuals_list)
-  group_labels    <- rep(names(Result1), times = sapply(residuals_list, length))
-  bartlett_result <- bartlett.test(residuals_values, group_labels)
+  nrep <- min(tapply(dat[[Replication]], dat[[Location]],
+                     function(z) nlevels(droplevels(z))))
+  if (nrep < 2L)
+    .cane_stop("A strip plot design needs at least two replications per environment to ",
+               "provide row strip and column strip errors, but the smallest number of ",
+               "replications in an environment is ", nrep, ".")
+  if (nrep == 2L)
+    warning("Only two replications per environment: the row strip and column strip errors ",
+            "have very few degrees of freedom and the corresponding F-tests will have ",
+            "little power.", call. = FALSE)
 
-  # If variances are heterogeneous, apply Aitken’s transformation (scale by sqrt(var) of each group)
-  if (bartlett_result$p.value < alpha) {
-    data$Transformed_Yield <- unlist(tapply(data[[Response]], data[[Location]],
-                                            function(Y) Y / sqrt(var(Y))))
-    # Combined model on transformed response (with replication nested in Location)
-    Im2 <- lm(formula(paste("Transformed_Yield ~", Location, "+", Location, ":", Replication, "+",
-                            RowFactor, "+", Location, ":", RowFactor, "+", Location, ":", Replication, ":", RowFactor, "+",
-                            ColumnFactor, "+", Location, ":", ColumnFactor, "+", Location, ":", Replication, ":", ColumnFactor, "+",
-                            RowFactor, ":", ColumnFactor, "+", Location, ":", RowFactor, ":", ColumnFactor)),
-              data = data)
-    response_vec <- data$Transformed_Yield  # for multiple comparisons
-  } else {
-    # Combined model on original response
-    Im2 <- lm(formula(paste(Response, "~", Location, "+", Location, ":", Replication, "+",
-                            RowFactor, "+", Location, ":", RowFactor, "+", Location, ":", Replication, ":", RowFactor, "+",
-                            ColumnFactor, "+", Location, ":", ColumnFactor, "+", Location, ":", Replication, ":", ColumnFactor, "+",
-                            RowFactor, ":", ColumnFactor, "+", Location, ":", RowFactor, ":", ColumnFactor)),
-              data = data)
-    response_vec <- data[[Response]]
-  }
+  design <- list(
+    name = "Strip plot design (StPD) pooled over environments",
+    within_resid = "Intersection error", pooled_resid = "Intersection error",
+    other_strata = list(`Row strip error` = c(Replication, RowFactor),
+                        `Column strip error` = c(Replication, ColumnFactor)),
+    randomise = function(sp) {
+      sp$RowFactor$denom <- c(Location, RowFactor)
+      sp$ColFactor$denom <- c(Location, ColumnFactor)
+      sp$RxC$denom       <- c(Location, RowFactor, ColumnFactor)
+      sp })
 
-  # Combined (pooled) ANOVA table
-  anova_result <- anova(Im2)
+  within_terms <- c(Replication, RowFactor,
+                    .cane_term_label(c(Replication, RowFactor)),
+                    ColumnFactor,
+                    .cane_term_label(c(Replication, ColumnFactor)),
+                    .cane_term_label(c(RowFactor, ColumnFactor)))
+  within_spec <- list(
+    Replication = list(vars = Replication, denom = "Residuals", label = "Replication"),
+    RowFactor   = list(vars = RowFactor, denom = c(Replication, RowFactor),
+                       label = "Row factor"),
+    RowErr      = list(vars = c(Replication, RowFactor), denom = "Residuals",
+                       label = "Row strip error"),
+    ColFactor   = list(vars = ColumnFactor, denom = c(Replication, ColumnFactor),
+                       label = "Column factor"),
+    ColErr      = list(vars = c(Replication, ColumnFactor), denom = "Residuals",
+                       label = "Column strip error"),
+    RxC         = list(vars = c(RowFactor, ColumnFactor), denom = "Residuals",
+                       label = "Row x Column"))
 
-  # Prepare interaction factor for treatments
-  data$InteractionFactor <- interaction(data[[RowFactor]], data[[ColumnFactor]])
+  pooled_terms <- c(Location,
+                    .cane_term_label(c(Location, Replication)),
+                    RowFactor,
+                    .cane_term_label(c(Location, RowFactor)),
+                    .cane_term_label(c(Location, Replication, RowFactor)),
+                    ColumnFactor,
+                    .cane_term_label(c(Location, ColumnFactor)),
+                    .cane_term_label(c(Location, Replication, ColumnFactor)),
+                    .cane_term_label(c(RowFactor, ColumnFactor)),
+                    .cane_term_label(c(Location, RowFactor, ColumnFactor)))
+  pooled_spec <- list(
+    Environment = list(vars = Location, denom = c(Location, Replication),
+                       label = "Environment"),
+    RepInEnv    = list(vars = c(Location, Replication), denom = "Residuals",
+                       label = "Rep within Env"),
+    RowFactor   = list(vars = RowFactor,
+                       denom = c(Location, Replication, RowFactor),
+                       label = "Row factor"),
+    RxE         = list(vars = c(Location, RowFactor),
+                       denom = c(Location, Replication, RowFactor),
+                       label = "Row x Env"),
+    RowErr      = list(vars = c(Location, Replication, RowFactor),
+                       denom = "Residuals", label = "Row strip error"),
+    ColFactor   = list(vars = ColumnFactor,
+                       denom = c(Location, Replication, ColumnFactor),
+                       label = "Column factor"),
+    CxE         = list(vars = c(Location, ColumnFactor),
+                       denom = c(Location, Replication, ColumnFactor),
+                       label = "Column x Env"),
+    ColErr      = list(vars = c(Location, Replication, ColumnFactor),
+                       denom = "Residuals", label = "Column strip error"),
+    RxC         = list(vars = c(RowFactor, ColumnFactor), denom = "Residuals",
+                       label = "Row x Column"),
+    RxCxE       = list(vars = c(Location, RowFactor, ColumnFactor),
+                       denom = "Residuals", label = "Row x Col x Env"))
 
-  # Multiple comparisons for RowFactor:ColumnFactor interaction at each location
-  comparison_results_location <- list()
-  for (loc in names(Result1)) {
-    subdata <- data[data[[Location]] == loc, ]
-    mod     <- Result1[[loc]]
-    # Compute error DF and MS for this location
-    dfe    <- df.residual(mod)
-    MSe    <- deviance(mod) / dfe
-    # Perform the selected multiple comparison test
-    comp <- switch(Mult_Comp_Test,
-                   `1` = HSD.test(subdata[[Response]], interaction(subdata[[RowFactor]], subdata[[ColumnFactor]]),
-                                  DFerror = dfe, MSerror = MSe, alpha = alpha, group = TRUE),
-                   `2` = duncan.test(subdata[[Response]], interaction(subdata[[RowFactor]], subdata[[ColumnFactor]]),
-                                     DFerror = dfe, MSerror = MSe, alpha = alpha, group = TRUE),
-                   `3` = LSD.test(subdata[[Response]], interaction(subdata[[RowFactor]], subdata[[ColumnFactor]]),
-                                  DFerror = dfe, MSerror = MSe, alpha = alpha, group = TRUE),
-                   stop("Invalid test selection! Use 1 for Tukey HSD, 2 for DMRT, or 3 for LSD."))
-    comparison_results_location[[loc]] <- comp
-  }
+  dat[[".cane_interaction"]] <- interaction(dat[[RowFactor]], dat[[ColumnFactor]],
+                                            sep = ":", drop = TRUE)
 
-  # Multiple comparison for pooled interaction (across all locations)
-  # Use the pooled residual DF and MS from Im2:
-  dfe_pooled <- df.residual(Im2)
-  MSe_pooled <- deviance(Im2) / dfe_pooled
-  Compare_result <- switch(Mult_Comp_Test,
-                           `1` = HSD.test(response_vec, data$InteractionFactor,
-                                          DFerror = dfe_pooled, MSerror = MSe_pooled, alpha = alpha, group = TRUE),
-                           `2` = duncan.test(response_vec, data$InteractionFactor,
-                                             DFerror = dfe_pooled, MSerror = MSe_pooled, alpha = alpha, group = TRUE),
-                           `3` = LSD.test(response_vec, data$InteractionFactor,
-                                          DFerror = dfe_pooled, MSerror = MSe_pooled, alpha = alpha, group = TRUE),
-                           stop("Invalid test selection! Use 1 for Tukey's HSD, 2 for DMRT, or 3 for LSD test."))
-
-  # Return results as a list
-  return(list(
-    Individual_ANOVA     = lapply(Result1, summary),
-    Location_wise        = comparison_results_location,
-    Bartlett_Test        = bartlett_result,
-    Pooled_ANOVA         = anova_result,
-    Interaction_Comparison = Compare_result
-  ))
+  res <- .cane_engine(dat, Response, Location, chk$alpha, chk$Mult_Comp_Test,
+                      chk$transform, env_effect,
+                      within_terms, within_spec, pooled_terms, pooled_spec,
+                      compare = list(
+                        list(name = "RowFactor", factor = RowFactor, spec = "RowFactor",
+                             within_error = c(Replication, RowFactor),
+                             pooled_error = c(Location, Replication, RowFactor)),
+                        list(name = "ColumnFactor", factor = ColumnFactor, spec = "ColFactor",
+                             within_error = c(Replication, ColumnFactor),
+                             pooled_error = c(Location, Replication, ColumnFactor)),
+                        list(name = "Interaction", factor = ".cane_interaction", spec = "RxC",
+                             within_error = "Residuals",
+                             pooled_error = "Residuals")),
+                      gei_label = c("Row x Env", "Column x Env", "Row x Col x Env"),
+                      design = design)
+  res$Call <- match.call()
+  res
 }

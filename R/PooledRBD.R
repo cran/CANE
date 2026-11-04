@@ -1,135 +1,89 @@
-#' @title Pooled Randomized Block Design Analysis
-#' @description This function performs pooled analysis of variance (ANOVA) using the randomized block design (RBD) for multiple locations or years. For more details see Montgomery (2017), Dean et al. (2017)<doi:10.1007/978-3-319-52250-0> and Ruíz et al. (2024)<doi:10.1007/978-3-031-65575-3>.
-#' @param data A data frame containing the experimental data.
-#' @param Response A numeric variable representing the dependent variable (response).
-#' @param Location A factor indicating different locations or years.
-#' @param Treatment A factor indicating the different treatments applied.
-#' @param Replication A factor indicating replications of treatments.
-#' @param alpha A numeric value specifying the significance level for Bartlett’s test.
-#' @param Mult_Comp_Test An integer specifying the type of multiple comparison test:
-#'   \itemize{
-#'     \item 1 = Tukey's honestly significant difference (Tukey's HSD) test
-#'     \item 2 = Duncan's multiple range test (DMRT)
-#'     \item 3 = least significant difference (LSD) test
-#'   }
-#' @return A list containing the following components:
-#'   \itemize{
-#'     \item \strong{Individual_ANOVA}: Summary of ANOVA results for each location or year.
-#'     \item \strong{Location_wise}: Multiple comparisons of treatments within each location or year.
-#'     \item \strong{Bartlett_Test}: Results of Bartlett's test for homogeneity of variances.
-#'     \item \strong{Pooled_ANOVA}: Combined (pooled) ANOVA table across all locations or years.
-#'     \item \strong{Treatments_Comparison}: Summary of pooled treatment comparisons using the selected multiple comparison test.
-#'   }
-#' @references Dean A, Voss D, Draguljic D (2017)<doi:10.1007/978-3-319-52250-0>.
+#' @title Pooled Analysis of a Series of Randomised Block Designs
 #'
-#' Montgomery DC (2017). \emph{Design and Analysis of Experiments}. John wiley & sons.
+#' @description
+#' Performs the classical pooled analysis of variance for a randomised block
+#' design (RBD) repeated over several environments. This is the workhorse
+#' analysis of multi-environment variety and agronomy trials.
 #'
-#' Ruíz JS, López OAM, Crossa J (2024)<doi:10.1007/978-3-031-65575-3>.
-#' @importFrom agricolae HSD.test duncan.test LSD.test
-#' @importFrom dplyr mutate filter
-#' @importFrom emmeans emmeans
-#' @importFrom stats aov anova lm bartlett.test
-#' @importFrom stats as.formula residuals var
-#' @importFrom stats ave deviance df.residual formula resid
+#' @details
+#' The model fitted within environment \eqn{j} is
+#' \deqn{Y_{ijk} = \mu_j + \rho_{jk} + \tau_{ij} + \epsilon_{ijk}}
+#' with \eqn{\rho_{jk}} the effect of replication \eqn{k} in environment
+#' \eqn{j}. The pooled model is
+#' \deqn{Y_{ijk} = \mu + \beta_j + \rho_{k(j)} + \tau_i + (\tau\beta)_{ij}
+#'   + \epsilon_{ijk},}
+#' replications being nested within environments, which gives
+#' \eqn{l(r-1)} degrees of freedom for replication rather than \eqn{r-1}.
+#'
+#' Following the standard treatment of a series of block experiments, the
+#' environment main effect is tested against the replication-within-environment
+#' mean square, because replications are the units within which environments
+#' are compared. Treatment and the treatment-by-environment interaction are
+#' tested against the pooled error when \code{env_effect = "fixed"}. When
+#' \code{env_effect = "random"} the treatment main effect is tested against the
+#' treatment-by-environment interaction instead.
+#'
+#' @inheritParams PooledCRD
+#' @param Replication Character string naming the replication (block) factor.
+#'
+#' @inherit PooledCRD return references
+#' @seealso \code{\link{PooledCRD}}, \code{\link{PooledLSD}},
+#'   \code{\link{PooledSPD}}, \code{\link{PooledStPD}}
+#'
 #' @examples
-#' # Creating a sample dataset for Pooled Randomized Block Design (RBD)
-#' df <- data.frame(
-#'   Loc = factor(rep(c("L1", "L2"), each = 9)),  # Locations
-#'   Rep = factor(rep(c("R1", "R2", "R3"), each = 3, times = 2)),  # Replications
-#'   Treatment = factor(rep(c("T1", "T2", "T3"), times = 6)),  # Treatments
-#'   Yield = c(18, 7, 11, 10, 19, 12, 15, 8, 13, 
-#'             18, 5, 11, 7, 19, 21, 22, 9, 14)  # Yield values
-#' )
-#' 
-#' # Running PooledRBD function on the dataset
-#' out <- PooledRBD(df, "Yield", "Loc", "Treatment", "Rep", 0.05, 1)
-#' 
-#' # Print results
-#' print(out)
+#' data(sugarcane)
+#' out <- PooledRBD(sugarcane, Response = "ccsy", Location = "env",
+#'                  Treatment = "gen", Replication = "rep",
+#'                  alpha = 0.05, Mult_Comp_Test = 1)
+#' out
+#' out$Pooled_ANOVA
+#' head(out$Treatments_Comparison$groups)
+#'
 #' @export
-PooledRBD <- function(data, Response, Location, Treatment, Replication, alpha, Mult_Comp_Test) {
+PooledRBD <- function(data, Response, Location, Treatment, Replication,
+                      alpha = 0.05, Mult_Comp_Test = 1,
+                      transform = c("auto", "always", "never"),
+                      env_effect = c("fixed", "random")) {
 
-  # Convert categorical variables to factors
-  data[, Location] <- factor(data[, Location])
-  data[, Treatment] <- factor(data[, Treatment])
-  data[, Replication] <- factor(data[, Replication])
+  env_effect <- match.arg(env_effect)
+  chk <- .cane_check(data, Response,
+                     c(Location = Location, Treatment = Treatment,
+                       Replication = Replication),
+                     alpha, Mult_Comp_Test, transform)
+  dat <- chk$data
+  .cane_check_balance(dat, Location, c(Treatment, Replication),
+                      "treatment-by-replication")
 
-  # Individual Analysis for each location or year (includes Replication)
-  Result1 <- by(data, data[, Location], function(x) aov(as.formula(paste(Response, "~", Replication, "+", Treatment)), data = x))
-  Result1 <- as.list(Result1)
+  design <- list(
+    name = "Randomised block design (RBD) pooled over environments",
+    within_resid = "Error", pooled_resid = "Pooled error",
+    randomise = function(sp) { sp$Treatment$denom <- c(Location, Treatment); sp })
 
-  # Compute Mean Squared Error (MSE) for each location
-  MSE <- sapply(Result1, function(model) sum(resid(model)^2) / df.residual(model))
+  within_terms <- c(Replication, Treatment)
+  within_spec <- list(
+    Replication = list(vars = Replication, denom = "Residuals", label = "Replication"),
+    Treatment   = list(vars = Treatment,   denom = "Residuals", label = "Treatment"))
 
-  # Assign MSE to each data row based on its location
-  data$MSE <- ave(data[, Response], data[, Location], FUN = function(x) MSE[as.character(unique(data[, Location][data[, Response] == x]))])
+  pooled_terms <- c(Location,
+                    .cane_term_label(c(Location, Replication)),
+                    Treatment,
+                    .cane_term_label(c(Location, Treatment)))
+  pooled_spec <- list(
+    Environment = list(vars = Location, denom = c(Location, Replication),
+                       label = "Environment"),
+    RepInEnv    = list(vars = c(Location, Replication), denom = "Residuals",
+                       label = "Rep within Env"),
+    Treatment   = list(vars = Treatment, denom = "Residuals", label = "Treatment"),
+    TxE         = list(vars = c(Location, Treatment), denom = "Residuals",
+                       label = "Treatment x Env"))
 
-  # Perform Bartlett’s Test for Homogeneity of error Variances
-  residuals_list <- lapply(Result1, residuals)
-  residuals_values <- unlist(residuals_list)
-  group_labels <- rep(names(Result1), times = sapply(residuals_list, length))
-  bartlett_result <- bartlett.test(residuals_values, group_labels)
-
-  # Check if Aitkens transformation is needed
-  if (bartlett_result$p.value < alpha) {
-    data$Transformed_Yield <- data[, Response] / sqrt(data$MSE)
-    Im2 <- lm(as.formula(paste("Transformed_Yield ~", Location, "+", Treatment, "+", Location, "/", Replication, "-", Replication, "+", Location, ":", Treatment)), data = data)
-  } else {
-    Im2 <- lm(as.formula(paste(Response, "~", Location, "+", Treatment, "+", Location, "/", Replication, "-", Replication, "+", Location, ":", Treatment)), data = data)
-  }
-
-  # Perform Combined ANOVA
-  anova_result <- anova(Im2)
-
-  # Store Individual ANOVA and Treatment Comparisons for each location
-  comparison_results_location_wise <- list()
-  formatted_Individual_ANOVA <- list()
-
-  for (loc in levels(data[, Location])) {
-    sub_data <- data[data[, Location] == loc, ]  # FIXED SUBSETTING ISSUE
-
-    # Individual ANOVA tables
-    model <- aov(as.formula(paste(Response, "~", Replication, "+", Treatment)), data = sub_data)
-    formatted_Individual_ANOVA[[loc]] <- summary(model)
-
-    # Perform multiple comparisons based on user selection
-    if (Mult_Comp_Test == 1) {
-      comp <- HSD.test(model, Treatment, group = TRUE)
-    } else if (Mult_Comp_Test == 2) {
-      comp <- duncan.test(model, Treatment, group = TRUE)
-    } else if (Mult_Comp_Test == 3) {
-      comp <- LSD.test(model, Treatment, group = TRUE)
-    } else {
-      stop("Invalid test selection! Use 1 for Tukey's HSD, 2 for DMRT, or 3 for LSD test.")
-    }
-
-    # Store treatment comparison results
-    comparison_results_location_wise[[loc]] <- list(
-      statistics = comp$statistics,
-      parameters = comp$parameters,
-      means = comp$means,
-      comparison = comp$comparison,
-      groups = comp$groups
-    )
-  }
-
-  # Perform overall treatment comparison across locations or years
-  if (Mult_Comp_Test == 1) {
-    Compare_result <- HSD.test(Im2, Treatment, group = TRUE)
-  } else if (Mult_Comp_Test == 2) {
-    Compare_result <- duncan.test(Im2, Treatment, group = TRUE)
-  } else if (Mult_Comp_Test == 3) {
-    Compare_result <- LSD.test(Im2, Treatment, group = TRUE)
-  } else {
-    stop("Invalid test selection! Use 1 for Tukey's HSD, 2 for DMRT, or 3 for LSD test.")
-  }
-
-  # Return results as a structured list
-  return(list(
-    Individual_ANOVA = formatted_Individual_ANOVA,
-    Location_wise = comparison_results_location_wise,
-    Bartlett_Test = bartlett_result,
-    Pooled_ANOVA = anova_result,
-    Treatments_Comparison = Compare_result
-  ))
+  res <- .cane_engine(dat, Response, Location, chk$alpha, chk$Mult_Comp_Test,
+                      chk$transform, env_effect,
+                      within_terms, within_spec, pooled_terms, pooled_spec,
+                      compare = list(list(name = "Treatment", factor = Treatment, spec = "Treatment",
+                                          within_error = "Residuals",
+                                          pooled_error = "Residuals")),
+                      gei_label = "Treatment x Env", design = design)
+  res$Call <- match.call()
+  res
 }

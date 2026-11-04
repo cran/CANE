@@ -1,144 +1,166 @@
-#' @title Pooled Split Plot Design Analysis
-#' @description This function conducts a pooled analysis of variance (ANOVA) using the split plot design (SPD) for data collected across multiple locations or years. In this design, subplot effects are estimated with greater precision. For more details see Dean et al. (2017)<doi:10.1007/978-3-319-52250-0> and Ruíz et al. (2024)<doi:10.1007/978-3-031-65575-3>.
-#' @param data A data frame containing the experimental data.
-#' @param Response A numeric variable representing the dependent variable (response).
-#' @param Location A factor indicating different locations or years.
-#' @param Replication A factor indicating replications.
-#' @param MainPlot A factor which require larger plot sizes.
-#' @param SubPlot A factor which require smaller plot sizes.
-#' @param alpha A numeric value specifying the significance level for Bartlett’s test.
-#' @param Mult_Comp_Test An integer specifying the type of multiple comparison test:
-#'   \itemize{
-#'     \item 1 = Tukey's honestly significant difference (Tukey's HSD) test
-#'     \item 2 = Duncan's multiple range test (DMRT)
-#'     \item 3 = least significant difference (LSD) test
-#'   }
-#' @return A list containing the following components:
-#'   \itemize{
-#'     \item \strong{Individual_ANOVA}: Summary of ANOVA results for each location or year.
-#' \item \strong{Location_wise}: Multiple comparisons of subplots within each location or year.
-#' \item \strong{Bartlett_Test}: Results of Bartlett's test for homogeneity of variances.
-#' \item \strong{Pooled_ANOVA}: Combined (pooled) ANOVA table across all locations or years.
-#' \item \strong{Treatments_Comparison}: Summary of pooled subplots comparisons using the selected multiple comparison test.
-#' }
-#' @references Dean A, Voss D, Draguljic D (2017)<doi:10.1007/978-3-319-52250-0>.
+#' @title Pooled Analysis of a Series of Split Plot Designs
 #'
-#' Ruíz JS, López OAM, Crossa J (2024)<doi:10.1007/978-3-031-65575-3>.
-#' @importFrom agricolae HSD.test duncan.test LSD.test
-#' @importFrom dplyr mutate filter
-#' @importFrom emmeans emmeans
-#' @importFrom stats aov anova lm bartlett.test
-#' @importFrom stats as.formula residuals var
-#' @importFrom stats ave deviance df.residual formula resid
+#' @description
+#' Performs the classical pooled analysis of variance for a split plot design
+#' (SPD) repeated over several environments, with every effect tested against
+#' its proper error term.
+#'
+#' @details
+#' A split plot design has two error strata. Main plot effects belong to the
+#' main plot stratum and must be tested against the main plot error,
+#' \eqn{Environment \times Replication \times MainPlot}; subplot effects and
+#' all interactions involving the subplot factor belong to the subplot stratum
+#' and are tested against the subplot (residual) error. Testing a main plot
+#' effect against the subplot error, as happens if a single-stratum model is
+#' fitted and its residual mean square is used for everything, gives an
+#' F-ratio with the wrong denominator and the wrong denominator degrees of
+#' freedom.
+#'
+#' The pooled partition implemented here is
+#' \deqn{Environment,\; Rep(Env),\; A,\; A \times Env,\; \mathrm{main\ plot\ error},}
+#' \deqn{B,\; B \times Env,\; A \times B,\; A \times B \times Env,\;
+#'   \mathrm{subplot\ error},}
+#' where \eqn{A} is the main plot factor and \eqn{B} the subplot factor. With
+#' \eqn{l} environments, \eqn{r} replications, \eqn{a} main plot levels and
+#' \eqn{b} subplot levels the main plot error carries \eqn{l(r-1)(a-1)}
+#' degrees of freedom and the subplot error \eqn{la(r-1)(b-1)}.
+#'
+#' Mean separation is carried out in the stratum appropriate to each factor:
+#' main plot means are compared using the main plot error mean square and its
+#' degrees of freedom, subplot means using the subplot error. The stratum used
+#' is recorded in the \code{parameters} component of each comparison.
+#'
+#' Homogeneity of error variances is assessed for both strata. The main
+#' Bartlett test, and the Aitken transformation when it is applied, use the
+#' subplot error mean square of each environment; the main plot error mean
+#' squares are tested separately and reported in
+#' \code{Bartlett_Test$other_strata}, with a note in the transformation report
+#' if they are heterogeneous.
+#'
+#' At least two replications per environment are needed for a main plot error
+#' to exist, and three or more are strongly advised: with \eqn{r = 2} and
+#' \eqn{a = 2} the main plot error has only \eqn{l} degrees of freedom and the
+#' main plot test has almost no power.
+#'
+#' @inheritParams PooledCRD
+#' @param Replication Character string naming the replication factor.
+#' @param MainPlot Character string naming the main plot (whole plot) factor,
+#'   that is the factor requiring the larger experimental units.
+#' @param SubPlot Character string naming the subplot factor.
+#'
+#' @return An object of class \code{"cane"}. The structure is as described in
+#'   \code{\link{PooledCRD}}, except that \code{Location_wise} and
+#'   \code{Treatments_Comparison} are each a list with components
+#'   \code{MainPlot} and \code{SubPlot}, computed from the main plot and
+#'   subplot error strata respectively.
+#'
+#' @inherit PooledCRD references
+#' @seealso \code{\link{PooledCRD}}, \code{\link{PooledRBD}},
+#'   \code{\link{PooledLSD}}, \code{\link{PooledStPD}}
+#'
 #' @examples
-#' # Creating a sample dataset for Pooled Split Plot Design (SPD)
-#' df <- data.frame(
-#'   Location = factor(rep(c("Londan", "Agumbe"), each = 12)),  # Locations
-#'   Replication = factor(rep(c(1, 2), each = 6, times = 2)),  # Replications
-#'   MainPlot = factor(rep(c(1, 2), each = 3, times = 4)),  # Main plot factor
-#'   SubPlot = factor(rep(1:3, times = 8)),  # Sub plot factor
-#'   Yield = c(4940, 4810, 5150, 4900, 4920, 5070, 
-#'             4830, 5110, 4920, 5020, 5110, 5230,
-#'             4964, 4997, 5011, 5102, 4858, 4888, 
-#'             5100, 5165, 4965, 5113, 5086, 5176)  # Yield values
-#' )
-#' 
-#' # Running PooledSPD function on the dataset
-#' out <- PooledSPD(df, "Yield", "Location", "Replication", "MainPlot", "SubPlot", 0.05, 1)
-#' 
-#' # Print results
-#' print(out)
+#' data(spd_example)
+#' out <- PooledSPD(spd_example, Response = "Yield", Location = "Location",
+#'                  Replication = "Replication", MainPlot = "MainPlot",
+#'                  SubPlot = "SubPlot", alpha = 0.05, Mult_Comp_Test = 1)
+#' out
+#' out$Pooled_ANOVA
+#' out$Treatments_Comparison$MainPlot$parameters
+#'
 #' @export
-PooledSPD <- function(data, Response, Location, Replication, MainPlot, SubPlot, alpha, Mult_Comp_Test) {
+PooledSPD <- function(data, Response, Location, Replication, MainPlot, SubPlot,
+                      alpha = 0.05, Mult_Comp_Test = 1,
+                      transform = c("auto", "always", "never"),
+                      env_effect = c("fixed", "random")) {
 
-  # Convert categorical variables to factors
-  data[, Location] <- factor(data[, Location])
-  data[, MainPlot] <- factor(data[, MainPlot])
-  data[, SubPlot] <- factor(data[, SubPlot])
-  data[, Replication] <- factor(data[, Replication])
+  env_effect <- match.arg(env_effect)
+  chk <- .cane_check(data, Response,
+                     c(Location = Location, Replication = Replication,
+                       MainPlot = MainPlot, SubPlot = SubPlot),
+                     alpha, Mult_Comp_Test, transform)
+  dat <- chk$data
+  .cane_check_balance(dat, Location, c(Replication, MainPlot, SubPlot),
+                      "replication-by-main-plot-by-subplot")
 
-  # Individual Analysis for each Location
-  Result1 <- by(data, data[, Location], function(x) {
-    aov(as.formula(paste(Response, "~", Replication, "+", MainPlot, "+", Replication, ":", MainPlot, "+", SubPlot, "+", MainPlot, ":", SubPlot)), data = x)
-  })
-  Result1 <- as.list(Result1)
+  nrep <- min(tapply(dat[[Replication]], dat[[Location]],
+                     function(z) nlevels(droplevels(z))))
+  if (nrep < 2L)
+    .cane_stop("A split plot design needs at least two replications per environment to ",
+               "provide a main plot error, but the smallest number of replications in an ",
+               "environment is ", nrep, ".")
+  if (nrep == 2L)
+    warning("Only two replications per environment: the main plot error has very few ",
+            "degrees of freedom and the main plot F-test will have little power. ",
+            "Interpret a non-significant main plot effect with caution.", call. = FALSE)
 
-  # Compute Mean Squared Error (MSE) for each Location
-  MSE <- sapply(Result1, function(model) sum(resid(model)^2) / df.residual(model))
+  design <- list(
+    name = "Split plot design (SPD) pooled over environments",
+    within_resid = "Subplot error", pooled_resid = "Subplot error",
+    other_strata = list(`Main plot error` = c(Replication, MainPlot)),
+    randomise = function(sp) {
+      sp$MainPlot$denom <- c(Location, MainPlot)
+      sp$SubPlot$denom  <- c(Location, SubPlot)
+      sp$MxS$denom      <- c(Location, MainPlot, SubPlot)
+      sp })
 
-  # Assign MSE to data based on Location
-  data$MSE <- sapply(data[, Location], function(loc) MSE[as.character(loc)])
+  ## ---- within environment: two strata ----
+  within_terms <- c(Replication, MainPlot,
+                    .cane_term_label(c(Replication, MainPlot)),
+                    SubPlot, .cane_term_label(c(MainPlot, SubPlot)))
+  within_spec <- list(
+    Replication = list(vars = Replication, denom = c(Replication, MainPlot),
+                       label = "Replication"),
+    MainPlot    = list(vars = MainPlot, denom = c(Replication, MainPlot),
+                       label = "Main plot"),
+    MainErr     = list(vars = c(Replication, MainPlot), denom = "Residuals",
+                       label = "Main plot error"),
+    SubPlot     = list(vars = SubPlot, denom = "Residuals", label = "Subplot"),
+    MxS         = list(vars = c(MainPlot, SubPlot), denom = "Residuals",
+                       label = "Main plot x SP"))
 
-  # Perform Bartlett’s Test for Homogeneity of Variance
-  residuals_list <- lapply(Result1, residuals)
-  residuals_values <- unlist(residuals_list)
-  group_labels <- rep(names(Result1), times = sapply(residuals_list, length))
-  bartlett_result <- bartlett.test(residuals_values, group_labels)
+  ## ---- pooled: two strata ----
+  pooled_terms <- c(Location,
+                    .cane_term_label(c(Location, Replication)),
+                    MainPlot,
+                    .cane_term_label(c(Location, MainPlot)),
+                    .cane_term_label(c(Location, Replication, MainPlot)),
+                    SubPlot,
+                    .cane_term_label(c(Location, SubPlot)),
+                    .cane_term_label(c(MainPlot, SubPlot)),
+                    .cane_term_label(c(Location, MainPlot, SubPlot)))
+  pooled_spec <- list(
+    Environment = list(vars = Location, denom = c(Location, Replication),
+                       label = "Environment"),
+    RepInEnv    = list(vars = c(Location, Replication),
+                       denom = c(Location, Replication, MainPlot),
+                       label = "Rep within Env"),
+    MainPlot    = list(vars = MainPlot, denom = c(Location, Replication, MainPlot),
+                       label = "Main plot"),
+    MxE         = list(vars = c(Location, MainPlot),
+                       denom = c(Location, Replication, MainPlot),
+                       label = "Main plot x Env"),
+    MainErr     = list(vars = c(Location, Replication, MainPlot), denom = "Residuals",
+                       label = "Main plot error"),
+    SubPlot     = list(vars = SubPlot, denom = "Residuals", label = "Subplot"),
+    SxE         = list(vars = c(Location, SubPlot), denom = "Residuals",
+                       label = "Subplot x Env"),
+    MxS         = list(vars = c(MainPlot, SubPlot), denom = "Residuals",
+                       label = "Main plot x SP"),
+    MxSxE       = list(vars = c(Location, MainPlot, SubPlot), denom = "Residuals",
+                       label = "MP x SP x Env"))
 
-  # Check if transformation is needed
-  if (bartlett_result$p.value < alpha) {
-    data$Transformed_Yield <- data[, Response] / sqrt(as.numeric(data$MSE))
-    Im2 <- lm(as.formula(paste("Transformed_Yield ~", Location, "+", Location, ":", Replication, "+", MainPlot, "+", Location, ":", MainPlot, "+",
-                               Location, ":", Replication, ":", MainPlot, "+", SubPlot, "+", Location, ":", SubPlot, "+",
-                               MainPlot, ":", SubPlot, "+", Location, ":", MainPlot, ":", SubPlot)), data = data)
-  } else {
-    Im2 <- lm(as.formula(paste(Response, "~", Location, "+", Location, ":", Replication, "+", MainPlot, "+", Location, ":", MainPlot, "+",
-                               Location, ":", Replication, ":", MainPlot, "+", SubPlot, "+", Location, ":", SubPlot, "+",
-                               MainPlot, ":", SubPlot, "+", Location, ":", MainPlot, ":", SubPlot)), data = data)
-  }
-
-  # Perform Combined ANOVA
-  anova_result <- anova(Im2)
-
-  # Store Individual ANOVA and Treatment Comparisons for each Location
-  comparison_results_location_wise <- list()
-  formatted_Individual_ANOVA <- list()
-
-  for (loc in levels(data[, Location])) {
-    sub_data <- data[data[, Location] == loc, ]
-
-    # Individual ANOVA tables
-    model <- aov(as.formula(paste(Response, "~", Replication, "+", MainPlot, "+", Replication, "*", MainPlot, "+", SubPlot, "+", MainPlot, "*", SubPlot)), data = sub_data)
-    formatted_Individual_ANOVA[[loc]] <- summary(model)
-
-    # Perform multiple comparisons based on user selection
-    if (Mult_Comp_Test == 1) {
-      comp <- HSD.test(model, SubPlot, group = TRUE)
-    } else if (Mult_Comp_Test == 2) {
-      comp <- duncan.test(model, SubPlot, group = TRUE)
-    } else if (Mult_Comp_Test == 3) {
-      comp <- LSD.test(model, SubPlot, group = TRUE)
-    } else {
-      stop("Invalid test selection! Use 1 for Tukey's HSD, 2 for DMRT, or 3 for LSD test.")
-    }
-
-    # Store treatment comparison results
-    comparison_results_location_wise[[loc]] <- list(
-      statistics = comp$statistics,
-      parameters = comp$parameters,
-      means = comp$means,
-      comparison = comp$comparison,
-      groups = comp$groups
-    )
-  }
-
-  # Perform overall treatment comparison across Locations
-  if (Mult_Comp_Test == 1) {
-    Compare_result <- HSD.test(Im2, SubPlot, group = TRUE)
-  } else if (Mult_Comp_Test == 2) {
-    Compare_result <- duncan.test(Im2, SubPlot, group = TRUE)
-  } else if (Mult_Comp_Test == 3) {
-    Compare_result <- LSD.test(Im2, SubPlot, group = TRUE)
-  } else {
-    stop("Invalid test selection! Use 1 for Tukey's HSD, 2 for DMRT, or 3 for LSD test.")
-  }
-
-  # Return results as a structured list
-  return(list(
-    Individual_ANOVA = formatted_Individual_ANOVA,
-    Location_wise = comparison_results_location_wise,
-    Bartlett_Test = bartlett_result,
-    Pooled_ANOVA = anova_result,
-    Treatments_Comparison = Compare_result
-  ))
+  res <- .cane_engine(dat, Response, Location, chk$alpha, chk$Mult_Comp_Test,
+                      chk$transform, env_effect,
+                      within_terms, within_spec, pooled_terms, pooled_spec,
+                      compare = list(
+                        list(name = "MainPlot", factor = MainPlot, spec = "MainPlot",
+                             within_error = c(Replication, MainPlot),
+                             pooled_error = c(Location, Replication, MainPlot)),
+                        list(name = "SubPlot", factor = SubPlot, spec = "SubPlot",
+                             within_error = "Residuals",
+                             pooled_error = "Residuals")),
+                      gei_label = c("Main plot x Env", "Subplot x Env", "MP x SP x Env"),
+                      design = design)
+  res$Call <- match.call()
+  res
 }

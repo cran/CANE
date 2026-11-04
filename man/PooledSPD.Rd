@@ -2,7 +2,7 @@
 % Please edit documentation in R/PooledSPD.R
 \name{PooledSPD}
 \alias{PooledSPD}
-\title{Pooled Split Plot Design Analysis}
+\title{Pooled Analysis of a Series of Split Plot Designs}
 \usage{
 PooledSPD(
   data,
@@ -11,66 +11,131 @@ PooledSPD(
   Replication,
   MainPlot,
   SubPlot,
-  alpha,
-  Mult_Comp_Test
+  alpha = 0.05,
+  Mult_Comp_Test = 1,
+  transform = c("auto", "always", "never"),
+  env_effect = c("fixed", "random")
 )
 }
 \arguments{
-\item{data}{A data frame containing the experimental data.}
+\item{data}{A data frame containing the experimental data. Rows with
+missing values in the variables used are dropped with a warning.}
 
-\item{Response}{A numeric variable representing the dependent variable (response).}
+\item{Response}{Character string naming the numeric response variable.}
 
-\item{Location}{A factor indicating different locations or years.}
+\item{Location}{Character string naming the factor that identifies
+environments (locations, seasons or years).}
 
-\item{Replication}{A factor indicating replications.}
+\item{Replication}{Character string naming the replication factor.}
 
-\item{MainPlot}{A factor which require larger plot sizes.}
+\item{MainPlot}{Character string naming the main plot (whole plot) factor,
+that is the factor requiring the larger experimental units.}
 
-\item{SubPlot}{A factor which require smaller plot sizes.}
+\item{SubPlot}{Character string naming the subplot factor.}
 
-\item{alpha}{A numeric value specifying the significance level for Bartlett’s test.}
+\item{alpha}{Significance level used for the variance-homogeneity test and
+for the multiple comparison procedure. Default \code{0.05}.}
 
-\item{Mult_Comp_Test}{An integer specifying the type of multiple comparison test:
-\itemize{
-  \item 1 = Tukey's honestly significant difference (Tukey's HSD) test
-  \item 2 = Duncan's multiple range test (DMRT)
-  \item 3 = least significant difference (LSD) test
-}}
+\item{Mult_Comp_Test}{Integer selecting the multiple comparison procedure:
+\code{1} = Tukey's honestly significant difference (HSD) test,
+\code{2} = Duncan's multiple range test (DMRT),
+\code{3} = Fisher's least significant difference (LSD) test. Option
+\code{3} makes no adjustment for multiplicity and is intended for a small
+number of pre-planned comparisons; a warning is issued if it is requested
+for more than three treatments.}
+
+\item{transform}{One of \code{"auto"} (default; transform only when the
+variances are judged heterogeneous at level \code{alpha}),
+\code{"always"} or \code{"never"}.}
+
+\item{env_effect}{One of \code{"fixed"} (default) or \code{"random"}.
+With \code{"random"} each treatment main effect is tested against its
+interaction with environment, and in split plot and strip plot designs
+the interaction of the two treatment factors is tested against the
+three-way interaction with environment. The pooled comparison of means
+then uses the same mean square and degrees of freedom as the F-test of
+the factor compared. With few environments that interaction has few
+degrees of freedom; if it has fewer than two, the Tukey and Duncan
+comparisons for that factor are not computed and a warning is issued.}
 }
 \value{
-A list containing the following components:
-  \itemize{
-    \item \strong{Individual_ANOVA}: Summary of ANOVA results for each location or year.
-\item \strong{Location_wise}: Multiple comparisons of subplots within each location or year.
-\item \strong{Bartlett_Test}: Results of Bartlett's test for homogeneity of variances.
-\item \strong{Pooled_ANOVA}: Combined (pooled) ANOVA table across all locations or years.
-\item \strong{Treatments_Comparison}: Summary of pooled subplots comparisons using the selected multiple comparison test.
-}
+An object of class \code{"cane"}. The structure is as described in
+  \code{\link{PooledCRD}}, except that \code{Location_wise} and
+  \code{Treatments_Comparison} are each a list with components
+  \code{MainPlot} and \code{SubPlot}, computed from the main plot and
+  subplot error strata respectively.
 }
 \description{
-This function conducts a pooled analysis of variance (ANOVA) using the split plot design (SPD) for data collected across multiple locations or years. In this design, subplot effects are estimated with greater precision. For more details see Dean et al. (2017)<doi:10.1007/978-3-319-52250-0> and Ruíz et al. (2024)<doi:10.1007/978-3-031-65575-3>.
+Performs the classical pooled analysis of variance for a split plot design
+(SPD) repeated over several environments, with every effect tested against
+its proper error term.
+}
+\details{
+A split plot design has two error strata. Main plot effects belong to the
+main plot stratum and must be tested against the main plot error,
+\eqn{Environment \times Replication \times MainPlot}; subplot effects and
+all interactions involving the subplot factor belong to the subplot stratum
+and are tested against the subplot (residual) error. Testing a main plot
+effect against the subplot error, as happens if a single-stratum model is
+fitted and its residual mean square is used for everything, gives an
+F-ratio with the wrong denominator and the wrong denominator degrees of
+freedom.
+
+The pooled partition implemented here is
+\deqn{Environment,\; Rep(Env),\; A,\; A \times Env,\; \mathrm{main\ plot\ error},}
+\deqn{B,\; B \times Env,\; A \times B,\; A \times B \times Env,\;
+  \mathrm{subplot\ error},}
+where \eqn{A} is the main plot factor and \eqn{B} the subplot factor. With
+\eqn{l} environments, \eqn{r} replications, \eqn{a} main plot levels and
+\eqn{b} subplot levels the main plot error carries \eqn{l(r-1)(a-1)}
+degrees of freedom and the subplot error \eqn{la(r-1)(b-1)}.
+
+Mean separation is carried out in the stratum appropriate to each factor:
+main plot means are compared using the main plot error mean square and its
+degrees of freedom, subplot means using the subplot error. The stratum used
+is recorded in the \code{parameters} component of each comparison.
+
+Homogeneity of error variances is assessed for both strata. The main
+Bartlett test, and the Aitken transformation when it is applied, use the
+subplot error mean square of each environment; the main plot error mean
+squares are tested separately and reported in
+\code{Bartlett_Test$other_strata}, with a note in the transformation report
+if they are heterogeneous.
+
+At least two replications per environment are needed for a main plot error
+to exist, and three or more are strongly advised: with \eqn{r = 2} and
+\eqn{a = 2} the main plot error has only \eqn{l} degrees of freedom and the
+main plot test has almost no power.
 }
 \examples{
-# Creating a sample dataset for Pooled Split Plot Design (SPD)
-df <- data.frame(
-  Location = factor(rep(c("Londan", "Agumbe"), each = 12)),  # Locations
-  Replication = factor(rep(c(1, 2), each = 6, times = 2)),  # Replications
-  MainPlot = factor(rep(c(1, 2), each = 3, times = 4)),  # Main plot factor
-  SubPlot = factor(rep(1:3, times = 8)),  # Sub plot factor
-  Yield = c(4940, 4810, 5150, 4900, 4920, 5070, 
-            4830, 5110, 4920, 5020, 5110, 5230,
-            4964, 4997, 5011, 5102, 4858, 4888, 
-            5100, 5165, 4965, 5113, 5086, 5176)  # Yield values
-)
+data(spd_example)
+out <- PooledSPD(spd_example, Response = "Yield", Location = "Location",
+                 Replication = "Replication", MainPlot = "MainPlot",
+                 SubPlot = "SubPlot", alpha = 0.05, Mult_Comp_Test = 1)
+out
+out$Pooled_ANOVA
+out$Treatments_Comparison$MainPlot$parameters
 
-# Running PooledSPD function on the dataset
-out <- PooledSPD(df, "Yield", "Location", "Replication", "MainPlot", "SubPlot", 0.05, 1)
-
-# Print results
-print(out)
 }
 \references{
-Dean A, Voss D, Draguljic D (2017)<doi:10.1007/978-3-319-52250-0>.
+Aitken, A. C. (1935). On least squares and linear combination of
+observations. \emph{Proceedings of the Royal Society of Edinburgh},
+55, 42--48. \doi{10.1017/S0370164600014346}
 
-Ruíz JS, López OAM, Crossa J (2024)<doi:10.1007/978-3-031-65575-3>.
+Bartlett, M. S. (1937). Properties of sufficiency and statistical tests.
+\emph{Proceedings of the Royal Society of London A}, 160, 268--282.
+\doi{10.1098/rspa.1937.0109}
+
+Cochran, W. G. and Cox, G. M. (1957). \emph{Experimental Designs},
+2nd ed. John Wiley and Sons, New York.
+
+Dean, A., Voss, D. and Draguljic, D. (2017). \emph{Design and Analysis of
+Experiments}, 2nd ed. Springer, Cham. \doi{10.1007/978-3-319-52250-0}
+
+Gomez, K. A. and Gomez, A. A. (1984). \emph{Statistical Procedures for
+Agricultural Research}, 2nd ed. John Wiley and Sons, New York.
+}
+\seealso{
+\code{\link{PooledCRD}}, \code{\link{PooledRBD}},
+  \code{\link{PooledLSD}}, \code{\link{PooledStPD}}
 }

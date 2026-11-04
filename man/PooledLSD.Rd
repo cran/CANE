@@ -2,7 +2,7 @@
 % Please edit documentation in R/PooledLSD.R
 \name{PooledLSD}
 \alias{PooledLSD}
-\title{Pooled Latin Square Design Analysis}
+\title{Pooled Analysis of a Series of Latin Square Designs}
 \usage{
 PooledLSD(
   data,
@@ -11,68 +11,125 @@ PooledLSD(
   Treatment,
   Row,
   Column,
-  alpha,
-  Mult_Comp_Test
+  alpha = 0.05,
+  Mult_Comp_Test = 1,
+  transform = c("auto", "always", "never"),
+  env_effect = c("fixed", "random")
 )
 }
 \arguments{
-\item{data}{A data frame containing the experimental data.}
+\item{data}{A data frame containing the experimental data. Rows with
+missing values in the variables used are dropped with a warning.}
 
-\item{Response}{A numeric variable representing the dependent variable (response).}
+\item{Response}{Character string naming the numeric response variable.}
 
-\item{Location}{A factor indicating different locations or years.}
+\item{Location}{Character string naming the factor that identifies
+environments (locations, seasons or years).}
 
-\item{Treatment}{A factor indicating the different treatments applied.}
+\item{Treatment}{Character string naming the treatment factor.}
 
-\item{Row}{A factor indicating rows.}
+\item{Row}{Character string naming the row factor of the square.}
 
-\item{Column}{A factor indicating columns.}
+\item{Column}{Character string naming the column factor of the square.}
 
-\item{alpha}{A numeric value specifying the significance level for Bartlett’s test.}
+\item{alpha}{Significance level used for the variance-homogeneity test and
+for the multiple comparison procedure. Default \code{0.05}.}
 
-\item{Mult_Comp_Test}{An integer specifying the type of multiple comparison test:
-\itemize{
-  \item 1 = Tukey's honestly significant difference (Tukey's HSD) test
-  \item 2 = Duncan's multiple range test (DMRT)
-  \item 3 = least significant difference (LSD) test
-}}
+\item{Mult_Comp_Test}{Integer selecting the multiple comparison procedure:
+\code{1} = Tukey's honestly significant difference (HSD) test,
+\code{2} = Duncan's multiple range test (DMRT),
+\code{3} = Fisher's least significant difference (LSD) test. Option
+\code{3} makes no adjustment for multiplicity and is intended for a small
+number of pre-planned comparisons; a warning is issued if it is requested
+for more than three treatments.}
+
+\item{transform}{One of \code{"auto"} (default; transform only when the
+variances are judged heterogeneous at level \code{alpha}),
+\code{"always"} or \code{"never"}.}
+
+\item{env_effect}{One of \code{"fixed"} (default) or \code{"random"}.
+With \code{"random"} each treatment main effect is tested against its
+interaction with environment, and in split plot and strip plot designs
+the interaction of the two treatment factors is tested against the
+three-way interaction with environment. The pooled comparison of means
+then uses the same mean square and degrees of freedom as the F-test of
+the factor compared. With few environments that interaction has few
+degrees of freedom; if it has fewer than two, the Tukey and Duncan
+comparisons for that factor are not computed and a warning is issued.}
 }
 \value{
-A list containing the following components:
-  \itemize{
-    \item \strong{Individual_ANOVA}: Summary of ANOVA results for each location or year.
-    \item \strong{Location_wise}: Multiple comparisons of treatments within each location or year.
-    \item \strong{Bartlett_Test}: Results of Bartlett's test for homogeneity of variances.
-    \item \strong{Pooled_ANOVA}: Combined (pooled) ANOVA table across all locations or years.
-    \item \strong{Treatments_Comparison}: Summary of pooled treatment comparisons using the selected multiple comparison test.
+An object of class \code{"cane"}, a list with components
+  \describe{
+    \item{\code{Design}}{Name of the design analysed.}
+    \item{\code{Individual_ANOVA}}{List of environment-wise ANOVA tables.}
+    \item{\code{Location_wise}}{Environment-wise multiple comparisons, each
+      computed from the error mean square of that environment.}
+    \item{\code{Bartlett_Test}}{Bartlett's test on the error mean squares.
+      For split plot and strip plot designs, element \code{other_strata}
+      gives the same test for the main plot or strip error strata.}
+    \item{\code{Levene_Test}}{Median-centred Levene (Brown-Forsythe) test.}
+    \item{\code{Normality_Test}}{Environment-wise Shapiro-Wilk tests.}
+    \item{\code{Transformation}}{Whether Aitken's transformation was applied,
+      why, the environment-wise error mean squares and the ratio of the
+      largest to the smallest.}
+    \item{\code{Pooled_ANOVA}}{Pooled ANOVA table, including the error term
+      used as the denominator of each F-test.}
+    \item{\code{Treatments_Comparison}}{Pooled treatment means, groups and
+      all pairwise differences. When a transformation was applied, means are
+      given on the transformed scale (on which the test was performed) and
+      the arithmetic means on the original scale are reported alongside.}
+    \item{\code{GEI_Note}}{Advice issued when any interaction of a treatment
+      factor with environment is significant, naming the terms concerned.}
+    \item{\code{Environment_Key}}{Mapping of environment levels to their
+      error mean square and error degrees of freedom.}
+    \item{\code{Settings}}{Arguments and software versions used.}
   }
 }
 \description{
-This function performs pooled analysis of variance (ANOVA) using the Latin square design for multiple locations or years. For more details see Montgomery (2017), Dean et al. (2017)<doi:10.1007/978-3-319-52250-0> and Ruíz et al. (2024)<doi:10.1007/978-3-031-65575-3>.
+Performs the classical pooled analysis of variance for a Latin square
+design repeated over several environments, with rows and columns correctly
+nested within environment.
+}
+\details{
+The model fitted within environment \eqn{j} is
+\deqn{Y_{ijkm} = \mu_j + \rho_{jk} + \gamma_{jm} + \tau_{ij} + \epsilon_{ijkm}}
+with \eqn{\rho_{jk}} the row effect and \eqn{\gamma_{jm}} the column effect.
+In the pooled model rows and columns are \strong{nested within environment},
+because each environment carries its own Latin square: row 1 at one site is
+a different strip of land from row 1 at another. Nesting gives
+\eqn{l(t-1)} degrees of freedom each for rows and columns. Treating rows and
+columns as crossed with environment instead would absorb
+\eqn{(l-1)(t-1)} genuine blocking degrees of freedom into the error term
+and bias every F-test.
 }
 \examples{
-# Creating a sample dataset for Pooled Latin Square Design (LSD)
-df <- data.frame(
-  Location = factor(c(rep("Agra", 16), rep("Bihar", 16))),  # Locations
-  Treatment = factor(c(4, 2, 3, 1, 3, 1, 4, 2, 1, 4, 2, 3, 2, 3, 1, 4,
-  4, 2, 3, 1, 3, 1, 4, 2, 1, 4, 2, 3, 2, 3, 1, 4)),  # Treatments
-  Row = factor(rep(1:4, each = 4, times = 2)),  # Row factor
-  Column = factor(rep(1:4, times = 8)),  # Column factor
-  Yield = c(29.1, 18.9, 29.4, 5.7, 16.4, 10.2, 21.2, 19.1, 5.4, 38.8, 24, 37, 
-            24.9, 41.7, 9.5, 28.9, 13, 27, 7, 24, 10, 13, 41, 39, 42, 26, 19, 20, 
-            20, 35, 8, 38)  # Yield values
-)
+data(lsd_example)
+out <- PooledLSD(lsd_example, Response = "Yield", Location = "Location",
+                 Treatment = "Treatment", Row = "Row", Column = "Column",
+                 alpha = 0.05, Mult_Comp_Test = 1)
+out
+out$Pooled_ANOVA
 
-# Running PooledLSD function on the dataset
-out <- PooledLSD(df, "Yield", "Location", "Treatment", "Row", "Column", 0.05, 1)
-
-# Print results
-print(out)
 }
 \references{
-Dean A, Voss D, Draguljic D (2017)<doi:10.1007/978-3-319-52250-0>.
+Aitken, A. C. (1935). On least squares and linear combination of
+observations. \emph{Proceedings of the Royal Society of Edinburgh},
+55, 42--48. \doi{10.1017/S0370164600014346}
 
-Montgomery DC (2017). \emph{Design and Analysis of Experiments}. John wiley & sons.
+Bartlett, M. S. (1937). Properties of sufficiency and statistical tests.
+\emph{Proceedings of the Royal Society of London A}, 160, 268--282.
+\doi{10.1098/rspa.1937.0109}
 
-Ruíz JS, López OAM, Crossa J (2024)<doi:10.1007/978-3-031-65575-3>.
+Cochran, W. G. and Cox, G. M. (1957). \emph{Experimental Designs},
+2nd ed. John Wiley and Sons, New York.
+
+Dean, A., Voss, D. and Draguljic, D. (2017). \emph{Design and Analysis of
+Experiments}, 2nd ed. Springer, Cham. \doi{10.1007/978-3-319-52250-0}
+
+Gomez, K. A. and Gomez, A. A. (1984). \emph{Statistical Procedures for
+Agricultural Research}, 2nd ed. John Wiley and Sons, New York.
+}
+\seealso{
+\code{\link{PooledCRD}}, \code{\link{PooledRBD}},
+  \code{\link{PooledSPD}}, \code{\link{PooledStPD}}
 }

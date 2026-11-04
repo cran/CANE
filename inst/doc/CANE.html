@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Pooled analysis of multi-environment trials with CANE</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Pooled analysis of multi-environment trials
+with CANE</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(CANE)</span></code></pre></div>
+<div id="the-problem" class="section level2">
+<h2>The problem</h2>
+<p>A single experiment at one site in one season answers a narrow
+question. Crop improvement and agronomy therefore repeat the same
+experiment across locations, seasons or years, and the quantity of
+interest becomes the treatment-by-environment interaction: do treatments
+rank consistently, or does the best treatment depend on where and when
+it is grown?</p>
+<p>Pooling such a series is not simply a matter of fitting one larger
+model. The classical workflow has four prerequisites, and each is easy
+to get wrong:</p>
+<ol style="list-style-type: decimal">
+<li>each environment must first be analysed on its own, with every
+effect tested against the error term that the design assigns to it;</li>
+<li>the error variances of the environments must be compared, because
+heterogeneous errors invalidate the pooled F-tests;</li>
+<li>if they are heterogeneous, the data must be rescaled before pooling;
+and</li>
+<li>the pooled treatment means must be separated using the correct error
+stratum, and interpreted in the light of the interaction.</li>
+</ol>
+<p><code>CANE</code> performs all four in one design-specific function
+call.</p>
+</div>
+<div id="the-five-functions" class="section level2">
+<h2>The five functions</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  <span class="at">Design =</span> <span class="fu">c</span>(<span class="st">&quot;Completely randomised&quot;</span>, <span class="st">&quot;Randomised block&quot;</span>, <span class="st">&quot;Latin square&quot;</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>             <span class="st">&quot;Split plot&quot;</span>, <span class="st">&quot;Strip plot&quot;</span>),</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">Function =</span> <span class="fu">c</span>(<span class="st">&quot;PooledCRD()&quot;</span>, <span class="st">&quot;PooledRBD()&quot;</span>, <span class="st">&quot;PooledLSD()&quot;</span>, <span class="st">&quot;PooledSPD()&quot;</span>,</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>               <span class="st">&quot;PooledStPD()&quot;</span>),</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  <span class="st">`</span><span class="at">Error strata</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>),</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  <span class="st">`</span><span class="at">Design arguments</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;-&quot;</span>, <span class="st">&quot;Replication&quot;</span>, <span class="st">&quot;Row, Column&quot;</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>                         <span class="st">&quot;Replication, MainPlot, SubPlot&quot;</span>,</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>                         <span class="st">&quot;Replication, RowFactor, ColumnFactor&quot;</span>),</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>  <span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt;                  Design     Function Error strata                     Design arguments</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; 1 Completely randomised  PooledCRD()            1                                    -</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; 2      Randomised block  PooledRBD()            1                          Replication</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; 3          Latin square  PooledLSD()            1                          Row, Column</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; 4            Split plot  PooledSPD()            2       Replication, MainPlot, SubPlot</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; 5            Strip plot PooledStPD()            3 Replication, RowFactor, ColumnFactor</span></span></code></pre></div>
+<p>All five share the same interface: <code>data</code>,
+<code>Response</code>, <code>Location</code>, the design-specific
+factors, <code>alpha</code>, <code>Mult_Comp_Test</code>, and optionally
+<code>transform</code> and <code>env_effect</code>. There is no omnibus
+function that handles every design; the user chooses the function
+matching the design that was actually conducted.</p>
+</div>
+<div id="a-worked-randomised-block-series" class="section level2">
+<h2>A worked randomised block series</h2>
+<p>The <code>sugarcane</code> dataset holds commercial cane sugar yield
+(t/ha) of 18 genotypes grown in a randomised block design with two
+replications at two locations over three crop cycles, giving six
+environments.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">data</span>(sugarcane)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">str</span>(sugarcane)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; &#39;data.frame&#39;:    216 obs. of  6 variables:</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;  $ env : Factor w/ 6 levels &quot;SGA-IP&quot;,&quot;SGA-IIP&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;  $ loc : Factor w/ 2 levels &quot;SGA&quot;,&quot;TCSM&quot;: 1 1 1 1 1 1 1 1 1 1 ...</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt;  $ crop: Factor w/ 3 levels &quot;IP&quot;,&quot;IIP&quot;,&quot;R&quot;: 1 1 1 1 1 1 1 1 1 1 ...</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt;  $ rep : Factor w/ 2 levels &quot;1&quot;,&quot;2&quot;: 1 1 1 1 1 1 1 1 1 1 ...</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt;  $ gen : Factor w/ 18 levels &quot;Co 12008&quot;,&quot;Co 12009&quot;,..: 1 2 3 4 5 6 7 8 9 10 ...</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt;  $ ccsy: num  16.19 13.55 19.12 6.27 20.83 ...</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="fu">with</span>(sugarcane, <span class="fu">table</span>(env, rep))</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt;           rep</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; env         1  2</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt;   SGA-IP   18 18</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt;   SGA-IIP  18 18</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt;   SGA-R    18 18</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt;   TCSM-IP  18 18</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt;   TCSM-IIP 18 18</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt;   TCSM-R   18 18</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">PooledRBD</span>(sugarcane, <span class="at">Response =</span> <span class="st">&quot;ccsy&quot;</span>, <span class="at">Location =</span> <span class="st">&quot;env&quot;</span>,</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>                 <span class="at">Treatment =</span> <span class="st">&quot;gen&quot;</span>, <span class="at">Replication =</span> <span class="st">&quot;rep&quot;</span>,</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>                 <span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">Mult_Comp_Test =</span> <span class="dv">1</span>)</span></code></pre></div>
+<div id="step-1-the-environments-on-their-own" class="section level3">
+<h3>Step 1: the environments on their own</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>fit<span class="sc">$</span>Individual_ANOVA[[<span class="st">&quot;SGA-IP&quot;</span>]]</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt;  Source      Df Sum Sq Mean Sq F value Pr(&gt;F)  Sig Error</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt;  Replication  1 89.164 89.16   8.314   0.01032 *   Error</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt;  Treatment   17 682.24 40.13   3.742   0.00475 **  Error</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;  Error       17 182.32 10.72                            </span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;  Total       35 953.72                                  </span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; &#39;Error&#39; names the mean square used as the denominator of each F-test.</span></span></code></pre></div>
+<p>The error mean squares of the six environments are what the next step
+compares:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>fit<span class="sc">$</span>Environment_Key</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt;      Level  n   Error_MS Error_df</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; 1   SGA-IP 36 10.7245624       17</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt; 2  SGA-IIP 36 20.5435136       17</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; 3    SGA-R 36 10.6075908       17</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; 4  TCSM-IP 36  0.1605052       17</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; 5 TCSM-IIP 36  1.3576430       17</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; 6   TCSM-R 36  3.3007993       17</span></span></code></pre></div>
+</div>
+<div id="step-2-are-the-error-variances-homogeneous" class="section level3">
+<h3>Step 2: are the error variances homogeneous?</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>fit<span class="sc">$</span>Bartlett_Test</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt;  Bartlett&#39;s test for homogeneity of error variances (on error mean squares)</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; data:  environment-wise error mean squares</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; Bartlett&#39;s K-squared = 81.17, df = 5, p-value = 4.77e-16</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; ratio of largest to smallest error mean square = 128</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>fit<span class="sc">$</span>Levene_Test</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt;  Levene&#39;s test (median-centred, Brown-Forsythe) on environment-wise residuals,</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt;  denominator df = total error df</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt; data:  environment-wise residuals</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt; F = 12.152, num.df = 5, denom.df = 102, p-value = 3.033e-09</span></span></code></pre></div>
+<p>The largest error mean square is more than a hundred times the
+smallest, so the error variances are clearly heterogeneous. Bartlett’s
+test is sensitive to non-normality, which is why <code>CANE</code>
+reports the median-centred Brown-Forsythe form of Levene’s test beside
+it, and the environment-wise Shapiro-Wilk tests as well:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>fit<span class="sc">$</span>Normality_Test</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt;   Environment  n         W     p.value</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; 1      SGA-IP 36 0.9664854 0.337459671</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; 2     SGA-IIP 36 0.9618970 0.245817020</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; 3       SGA-R 36 0.9734697 0.527607435</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt; 4     TCSM-IP 36 0.9810379 0.779801819</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt; 5    TCSM-IIP 36 0.8850167 0.001362167</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt; 6      TCSM-R 36 0.9939775 0.999237292</span></span></code></pre></div>
+<p>Both tests agree here, so the decision to rescale is secure. When
+they disagree, prefer Levene, and use <code>transform = &quot;always&quot;</code>
+or <code>transform = &quot;never&quot;</code> to take the decision yourself rather
+than leaving it to a threshold.</p>
+</div>
+<div id="step-3-the-transformation" class="section level3">
+<h3>Step 3: the transformation</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>fit<span class="sc">$</span>Transformation<span class="sc">$</span>applied</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="fu">cat</span>(fit<span class="sc">$</span>Transformation<span class="sc">$</span>reason)</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt; transform = &quot;auto&quot;: Bartlett&#39;s test gave P = 4.77e-16 against alpha = 0.05, so the error variances were judged heterogeneous and Aitken&#39;s transformation was applied. Levene&#39;s test (robust to non-normality) gave P = 3.033e-09.</span></span></code></pre></div>
+<p>Aitken’s transformation divides each observation by the square root
+of the error mean square of <strong>its own</strong> environment. That
+yields a useful self-check: after the transformation each environment
+contributes an error sum of squares equal to its own error degrees of
+freedom, so the pooled error mean square must come out at exactly 1.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">cat</span>(fit<span class="sc">$</span>Transformation<span class="sc">$</span>diagnostic<span class="sc">$</span>note)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt; On the Aitken scale the pooled error mean square of a single-error design equals 1 by construction, because each environment&#39;s error sum of squares is divided by its own error mean square. Observed: 1.</span></span></code></pre></div>
+</div>
+<div id="step-4-the-pooled-analysis" class="section level3">
+<h3>Step 4: the pooled analysis</h3>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>fit<span class="sc">$</span>Pooled_ANOVA</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">#&gt;  Source          Df  Sum Sq Mean Sq F value Pr(&gt;F)  Sig Error         </span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt;  Environment       5 30753. 6151.   1654.   2.5e-09 *** Rep within Env</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt;  Rep within Env    6 22.312 3.719   3.719   0.0022  **  Pooled error  </span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#&gt;  Treatment        17 503.72 29.63   29.63   &lt; 1e-16 *** Pooled error  </span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">#&gt;  Treatment x Env  85 1233.5 14.51   14.51   &lt; 1e-16 *** Pooled error  </span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#&gt;  Pooled error    102 102.00 1.000                                     </span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co">#&gt;  Total           215 32614.                                           </span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#&gt; &#39;Error&#39; names the mean square used as the denominator of each F-test.</span></span></code></pre></div>
+<p>The <code>Error</code> column names the mean square used as the
+denominator of each F-test. In a randomised block series the environment
+main effect is tested against the replication-within-environment mean
+square, because replications are the units within which environments are
+compared; the treatment effect and the interaction are tested against
+the pooled error.</p>
+<p>Note the caveat attached to the environment main effect on a
+transformed scale: each environment has been divided by its own error
+standard deviation, so that term is no longer expressed in t/ha and is
+not interpretable as a yield difference. Interpretation belongs to the
+treatment and interaction terms.</p>
+</div>
+<div id="step-5-separating-the-treatment-means" class="section level3">
+<h3>Step 5: separating the treatment means</h3>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>fit<span class="sc">$</span>Treatments_Comparison</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="co">#&gt; Multiple comparison of means</span></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="co">#&gt;   Procedure     : Tukey&#39;s HSD</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co">#&gt;   Error stratum : Pooled error  (MSerror = 1 on 102 df)</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co">#&gt;   Scale         : Aitken-transformed</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#&gt;   alpha = 0.05 | treatments = 18 | replication = 12 | critical difference = 1.462</span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#&gt;  Treatment    Mean Groups Mean_original_scale</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt;   Co 12009 13.9320      a             15.8937</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt;   Co 16018 13.6682      a             15.5943</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt;   Co 17012 12.8414     ab             15.1987</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt;   Co 14027 12.6390     ab             15.2795</span></span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a><span class="co">#&gt;   Co 12008 11.8366     bc             12.8636</span></span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a><span class="co">#&gt;   Co 86032 11.8043    bcd             14.2367</span></span>
+<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a><span class="co">#&gt;   Co 16010 11.6770    bcd             14.3450</span></span>
+<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a><span class="co">#&gt;   Co 17001 11.3938   bcde             15.8328</span></span>
+<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a><span class="co">#&gt;   Co 17003 11.3920   bcde             13.5122</span></span>
+<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a><span class="co">#&gt;   Co 16009 11.0494   cdef             12.2808</span></span>
+<span id="cb12-19"><a href="#cb12-19" tabindex="-1"></a><span class="co">#&gt;   Co 18024 10.5471   cdef             12.8915</span></span>
+<span id="cb12-20"><a href="#cb12-20" tabindex="-1"></a><span class="co">#&gt;   Co 18009 10.3948  cdefg             13.0860</span></span>
+<span id="cb12-21"><a href="#cb12-21" tabindex="-1"></a><span class="co">#&gt;   Co 14005 10.3435   defg             12.9514</span></span>
+<span id="cb12-22"><a href="#cb12-22" tabindex="-1"></a><span class="co">#&gt;   Co 14002 10.0568    efg             14.7262</span></span>
+<span id="cb12-23"><a href="#cb12-23" tabindex="-1"></a><span class="co">#&gt;   Co 17004 10.0188    efg             13.5124</span></span>
+<span id="cb12-24"><a href="#cb12-24" tabindex="-1"></a><span class="co">#&gt;   Co 15018  9.7537     fg             11.1913</span></span>
+<span id="cb12-25"><a href="#cb12-25" tabindex="-1"></a><span class="co">#&gt;   Co 15015  9.0423     gh             10.7336</span></span>
+<span id="cb12-26"><a href="#cb12-26" tabindex="-1"></a><span class="co">#&gt;   Co 17013  7.8221      h              8.0148</span></span>
+<span id="cb12-27"><a href="#cb12-27" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb12-28"><a href="#cb12-28" tabindex="-1"></a><span class="co">#&gt; Means sharing a letter do not differ significantly at alpha = 0.05.</span></span></code></pre></div>
+<p>Because the analysis was carried out on the transformed scale, the
+means in the <code>Mean</code> column and the grouping letters both
+refer to that scale. The arithmetic means on the original scale are
+given alongside, for reporting in t/ha. They are not an inverse
+transformation: no single multiplier inverts Aitken’s rescaling, because
+each environment was divided by a different constant.</p>
+</div>
+<div id="the-interaction-matters" class="section level3">
+<h3>The interaction matters</h3>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>fit<span class="sc">$</span>GEI_Note</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="co">#&gt;   The term Treatment x Env (P &lt; 2.2e-16) is significant at alpha = 0.05.</span></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt;   Treatment rankings are therefore not consistent across environments, and</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">#&gt;   the pooled treatment means in &#39;Treatments_Comparison&#39; average over that</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt;   inconsistency. Base any recommendation on the environment-wise comparisons</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt;   in &#39;Location_wise&#39; as well, and consider a stability or</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt;   multiplicative-model analysis (for example AMMI or GGE) before advancing a</span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co">#&gt;   treatment on its pooled mean alone.</span></span></code></pre></div>
+<p>The interaction is significant, so the pooled ranking conceals
+genotypes that excel in some environments and not others. The
+environment-wise comparisons are already in the object:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>fit<span class="sc">$</span>Location_wise[[<span class="st">&quot;TCSM-IP&quot;</span>]]<span class="sc">$</span>groups[<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, ]</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="co">#&gt;   Treatment    Mean Groups</span></span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="co">#&gt; 1  Co 12009 19.8965      a</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co">#&gt; 2  Co 16018 19.0625     ab</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co">#&gt; 3  Co 12008 17.8655     bc</span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">#&gt; 4  Co 17012 17.7115     bc</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#&gt; 5  Co 14027 16.3740     cd</span></span></code></pre></div>
+</div>
+</div>
+<div id="designs-with-more-than-one-error-stratum" class="section level2">
+<h2>Designs with more than one error stratum</h2>
+<p>A split plot design has two error terms and a strip plot design
+three. This is where the choice of denominator is not a detail: the main
+plot effect of a split plot tested against the subplot error is simply
+the wrong test.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">data</span>(spd_example)</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>sp <span class="ot">&lt;-</span> <span class="fu">PooledSPD</span>(spd_example, <span class="st">&quot;Yield&quot;</span>, <span class="st">&quot;Location&quot;</span>, <span class="st">&quot;Replication&quot;</span>, <span class="st">&quot;MainPlot&quot;</span>,</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>                <span class="st">&quot;SubPlot&quot;</span>, <span class="fl">0.05</span>, <span class="dv">1</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>sp<span class="sc">$</span>Pooled_ANOVA</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="co">#&gt;  Source          Df Sum Sq   Mean Sq F value  Pr(&gt;F)   Sig Error          </span></span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">#&gt;  Environment      1 433280.  433300. 17.66    0.005674 **  Rep within Env </span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt;  Rep within Env   6 147240.  24540.  1.929    0.222068     Main plot error</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co">#&gt;  Main plot        1 502420.  502400. 39.48    0.000756 *** Main plot error</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co">#&gt;  Main plot x Env  1 46.021   46.02   0.003617 0.953998     Main plot error</span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co">#&gt;  Main plot error  6 76349.   12720.  8.645    4.58e-05 *** Subplot error  </span></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co">#&gt;  Subplot          2 177930.  88970.  60.44    4.27e-10 *** Subplot error  </span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="co">#&gt;  Subplot x Env    2 2213.1   1107.   0.7518   0.482313     Subplot error  </span></span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="co">#&gt;  Main plot x SP   2 960.17   480.1   0.3262   0.724836     Subplot error  </span></span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="co">#&gt;  MP x SP x Env    2 1128.1   564.0   0.3832   0.685776     Subplot error  </span></span>
+<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a><span class="co">#&gt;  Subplot error   24 35326.   1472.                                        </span></span>
+<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a><span class="co">#&gt;  Total           47 1376900.                                              </span></span>
+<span id="cb15-17"><a href="#cb15-17" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb15-18"><a href="#cb15-18" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb15-19"><a href="#cb15-19" tabindex="-1"></a><span class="co">#&gt; &#39;Error&#39; names the mean square used as the denominator of each F-test.</span></span></code></pre></div>
+<p>Mean separation follows the same logic. Main plot means are compared
+with the main plot error, subplot means with the subplot error:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a>sp<span class="sc">$</span>Treatments_Comparison<span class="sc">$</span>MainPlot<span class="sc">$</span>statistics</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="co">#&gt;    MSerror Df     Mean       CV Critical_difference</span></span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="co">#&gt; 1 12724.77  6 5144.129 2.192871             79.6806</span></span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>sp<span class="sc">$</span>Treatments_Comparison<span class="sc">$</span>SubPlot<span class="sc">$</span>statistics</span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="co">#&gt;    MSerror Df     Mean        CV Critical_difference</span></span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a><span class="co">#&gt; 1 1471.905 24 5144.129 0.7458096            33.87375</span></span></code></pre></div>
+<p>The strip plot design returns three sets of comparisons, one per
+stratum:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="fu">data</span>(stpd_example)</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>st <span class="ot">&lt;-</span> <span class="fu">PooledStPD</span>(stpd_example, <span class="st">&quot;Yield&quot;</span>, <span class="st">&quot;Location&quot;</span>, <span class="st">&quot;Replication&quot;</span>, <span class="st">&quot;RowFactor&quot;</span>,</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>                 <span class="st">&quot;ColumnFactor&quot;</span>, <span class="fl">0.05</span>, <span class="dv">1</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>st<span class="sc">$</span>Pooled_ANOVA</span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a><span class="co">#&gt;  Source             Df Sum Sq  Mean Sq F value Pr(&gt;F)   Sig Error             </span></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="co">#&gt;  Environment         1 54493.  54490.  1.845   0.22323      Rep within Env    </span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a><span class="co">#&gt;  Rep within Env      6 177230. 29540.  15.28   5.46e-05 *** Intersection error</span></span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a><span class="co">#&gt;  Row factor          1 104430. 104400. 14.98   0.00826  **  Row strip error   </span></span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a><span class="co">#&gt;  Row x Env           1 8318.7  8319.   1.194   0.31653      Row strip error   </span></span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a><span class="co">#&gt;  Row strip error     6 41819.  6970.   3.605   0.02795  *   Intersection error</span></span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a><span class="co">#&gt;  Column factor       2 113960. 56980.  25.46   4.81e-05 *** Column strip error</span></span>
+<span id="cb17-12"><a href="#cb17-12" tabindex="-1"></a><span class="co">#&gt;  Column x Env        2 262.65  131.3   0.05868 0.94327      Column strip error</span></span>
+<span id="cb17-13"><a href="#cb17-13" tabindex="-1"></a><span class="co">#&gt;  Column strip error 12 26854.  2238.   1.158   0.40199      Intersection error</span></span>
+<span id="cb17-14"><a href="#cb17-14" tabindex="-1"></a><span class="co">#&gt;  Row x Column        2 429.41  214.7   0.1111  0.89579      Intersection error</span></span>
+<span id="cb17-15"><a href="#cb17-15" tabindex="-1"></a><span class="co">#&gt;  Row x Col x Env     2 1230.9  615.4   0.3184  0.73330      Intersection error</span></span>
+<span id="cb17-16"><a href="#cb17-16" tabindex="-1"></a><span class="co">#&gt;  Intersection error 12 23197.  1933.                                          </span></span>
+<span id="cb17-17"><a href="#cb17-17" tabindex="-1"></a><span class="co">#&gt;  Total              47 552220.                                                </span></span>
+<span id="cb17-18"><a href="#cb17-18" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb17-19"><a href="#cb17-19" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb17-20"><a href="#cb17-20" tabindex="-1"></a><span class="co">#&gt; &#39;Error&#39; names the mean square used as the denominator of each F-test.</span></span>
+<span id="cb17-21"><a href="#cb17-21" tabindex="-1"></a><span class="fu">names</span>(st<span class="sc">$</span>Treatments_Comparison)</span>
+<span id="cb17-22"><a href="#cb17-22" tabindex="-1"></a><span class="co">#&gt; [1] &quot;RowFactor&quot;    &quot;ColumnFactor&quot; &quot;Interaction&quot;</span></span></code></pre></div>
+</div>
+<div id="choosing-a-multiple-comparison-procedure" class="section level2">
+<h2>Choosing a multiple comparison procedure</h2>
+<p><code>Mult_Comp_Test = 1</code> gives Tukey’s HSD, which controls the
+family-wise error rate over all pairwise comparisons and is the sensible
+default when all pairwise differences are of interest. <code>2</code>
+gives Duncan’s multiple range test, whose graduated protection levels
+buy power at the cost of weaker error control. <code>3</code> gives
+Fisher’s LSD, which makes no adjustment at all; with means it conducts
+independent tests at level , so the chance of at least one false
+declaration grows quickly. <code>CANE</code> warns when LSD is requested
+for more than three treatments. Reserve it for a small number of
+comparisons planned before the data were seen.</p>
+</div>
+<div id="fixed-or-random-environments" class="section level2">
+<h2>Fixed or random environments</h2>
+<p>By default environments are treated as fixed, which is appropriate
+when they are a specific set of target sites or seasons. If the
+environments are better regarded as a sample from a wider population to
+which the conclusion should generalise, the treatment main effect should
+be tested against the treatment-by-environment interaction:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>fr <span class="ot">&lt;-</span> <span class="fu">PooledRBD</span>(sugarcane, <span class="st">&quot;ccsy&quot;</span>, <span class="st">&quot;env&quot;</span>, <span class="st">&quot;gen&quot;</span>, <span class="st">&quot;rep&quot;</span>, <span class="fl">0.05</span>, <span class="dv">1</span>,</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>                <span class="at">env_effect =</span> <span class="st">&quot;random&quot;</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>r <span class="ot">&lt;-</span> fr<span class="sc">$</span>Pooled_ANOVA</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>r[r<span class="sc">$</span>Source <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;Treatment&quot;</span>, <span class="st">&quot;Treatment x Env&quot;</span>), ]</span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a><span class="co">#&gt;  Source          Df Sum Sq Mean Sq F value Pr(&gt;F) Sig Error          </span></span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a><span class="co">#&gt;  Treatment       17 503.72 29.63   2.042   0.0171 *   Treatment x Env</span></span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a><span class="co">#&gt;  Treatment x Env 85 1233.5 14.51   14.51   &lt;1e-16 *** Pooled error   </span></span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a><span class="co">#&gt; &#39;Error&#39; names the mean square used as the denominator of each F-test.</span></span></code></pre></div>
+<p>The pooled comparison of means then uses the same mean square, so the
+grouping letters and the F-test rest on the same denominator:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>fr<span class="sc">$</span>Treatments_Comparison<span class="sc">$</span>parameters[, <span class="fu">c</span>(<span class="st">&quot;test&quot;</span>, <span class="st">&quot;error_stratum&quot;</span>, <span class="st">&quot;scale&quot;</span>)]</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="co">#&gt;          test   error_stratum              scale</span></span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a><span class="co">#&gt; 1 Tukey&#39;s HSD Treatment x Env Aitken-transformed</span></span></code></pre></div>
+</div>
+<div id="what-cane-is-not-for" class="section level2">
+<h2>What CANE is not for</h2>
+<p><code>CANE</code> implements the fixed-effects pooled analysis of a
+<em>balanced</em> series of experiments. It is deliberately narrow.
+For</p>
+<ul>
+<li>unbalanced series, or treatment sets that only partly overlap
+between environments, use a mixed-model package such as
+<strong>nlme</strong> or <strong>lme4</strong>, which handle missing
+cells properly;</li>
+<li>augmented designs, in which a few checks are replicated and the test
+entries are not, use <strong>augmentedRCBD</strong> (archived on CRAN in
+April 2026 for an administrative reason; it remains installable from its
+own repository);</li>
+<li>the single-trial stage of a mixed-model pipeline, use
+<strong>statgenSTA</strong>;</li>
+<li>explicit modelling of heterogeneous variances or of a spatial
+covariance structure, use <strong>nlme</strong>, <strong>lme4</strong>,
+<strong>sommer</strong> or <strong>asreml</strong>;</li>
+<li>multiplicative decomposition of the interaction and stability
+analysis (AMMI, GGE biplots, Shukla’s variance, Eberhart-Russell
+regression), use <strong>metan</strong> or
+<strong>ammistability</strong>;</li>
+<li>best linear unbiased prediction of genotype effects for selection,
+use a mixed-model package.</li>
+</ul>
+<p>The pooled ANOVA is the first step of a multi-environment analysis,
+not the last one. Its value is that it tests the main effects and the
+interaction exactly and transparently, which tells you whether the more
+elaborate analyses are worth running.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

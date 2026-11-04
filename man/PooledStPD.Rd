@@ -2,7 +2,7 @@
 % Please edit documentation in R/PooledStPD.R
 \name{PooledStPD}
 \alias{PooledStPD}
-\title{Pooled Strip Plot Design Analysis}
+\title{Pooled Analysis of a Series of Strip Plot Designs}
 \usage{
 PooledStPD(
   data,
@@ -11,66 +11,122 @@ PooledStPD(
   Replication,
   RowFactor,
   ColumnFactor,
-  alpha,
-  Mult_Comp_Test
+  alpha = 0.05,
+  Mult_Comp_Test = 1,
+  transform = c("auto", "always", "never"),
+  env_effect = c("fixed", "random")
 )
 }
 \arguments{
-\item{data}{A data frame containing the experimental data.}
+\item{data}{A data frame containing the experimental data. Rows with
+missing values in the variables used are dropped with a warning.}
 
-\item{Response}{A numeric variable representing the dependent variable (response).}
+\item{Response}{Character string naming the numeric response variable.}
 
-\item{Location}{A factor indicating different locations or years.}
+\item{Location}{Character string naming the factor that identifies
+environments (locations, seasons or years).}
 
-\item{Replication}{A factor indicating replications.}
+\item{Replication}{Character string naming the replication factor.}
 
-\item{RowFactor}{A factor used for horizontal strips.}
+\item{RowFactor}{Character string naming the factor applied in horizontal
+strips.}
 
-\item{ColumnFactor}{A factor used for vertical strips.}
+\item{ColumnFactor}{Character string naming the factor applied in vertical
+strips.}
 
-\item{alpha}{A numeric value specifying the significance level for Bartlett’s test.}
+\item{alpha}{Significance level used for the variance-homogeneity test and
+for the multiple comparison procedure. Default \code{0.05}.}
 
-\item{Mult_Comp_Test}{An integer specifying the type of multiple comparison test:
-\itemize{
-  \item 1 = Tukey's honestly significant difference (Tukey's HSD) test
-  \item 2 = Duncan's multiple range test (DMRT)
-  \item 3 = least significant difference (LSD) test
-}}
+\item{Mult_Comp_Test}{Integer selecting the multiple comparison procedure:
+\code{1} = Tukey's honestly significant difference (HSD) test,
+\code{2} = Duncan's multiple range test (DMRT),
+\code{3} = Fisher's least significant difference (LSD) test. Option
+\code{3} makes no adjustment for multiplicity and is intended for a small
+number of pre-planned comparisons; a warning is issued if it is requested
+for more than three treatments.}
+
+\item{transform}{One of \code{"auto"} (default; transform only when the
+variances are judged heterogeneous at level \code{alpha}),
+\code{"always"} or \code{"never"}.}
+
+\item{env_effect}{One of \code{"fixed"} (default) or \code{"random"}.
+With \code{"random"} each treatment main effect is tested against its
+interaction with environment, and in split plot and strip plot designs
+the interaction of the two treatment factors is tested against the
+three-way interaction with environment. The pooled comparison of means
+then uses the same mean square and degrees of freedom as the F-test of
+the factor compared. With few environments that interaction has few
+degrees of freedom; if it has fewer than two, the Tukey and Duncan
+comparisons for that factor are not computed and a warning is issued.}
 }
 \value{
-A list containing the following components:
-\itemize{
-  \item \strong{Individual_ANOVA}: Summary of ANOVA results for each location or year.
-  \item \strong{Location_wise}: Multiple comparisons of interaction of RowFactor and ColumnFactor within each location or year.
-  \item \strong{Bartlett_Test}: Results of Bartlett's test for homogeneity of variances.
-  \item \strong{Pooled_ANOVA}: Combined (pooled) ANOVA table across all locations or years.
-  \item \strong{Interaction_Comparison}: Summary of pooled interaction of RowFactor and ColumnFactor comparisons using the selected multiple comparison test..
-}
+An object of class \code{"cane"}. The structure is as described in
+  \code{\link{PooledCRD}}, except that \code{Location_wise} and
+  \code{Treatments_Comparison} are each a list with components
+  \code{RowFactor}, \code{ColumnFactor} and \code{Interaction}, computed
+  from the row strip, column strip and intersection error strata
+  respectively.
 }
 \description{
-This function conducts a pooled analysis of variance (ANOVA) using the strip plot design (StPD) for data collected across multiple locations or years. In this design, the interaction between factors (RowFactor and ColumnFactor) is estimated with higher precision. For more details see Dean et al. (2017)<doi:10.1007/978-3-319-52250-0> and Ruíz et al. (2024)<doi:10.1007/978-3-031-65575-3>.
+Performs the classical pooled analysis of variance for a strip plot (split
+block) design repeated over several environments, with three error strata
+handled explicitly.
+}
+\details{
+In a strip plot design the two factors are applied in perpendicular strips,
+which creates \strong{three} error terms: a row strip error, a column strip
+error and an intersection error. The row factor must be tested against the
+row strip error \eqn{Environment \times Replication \times Row}, the column
+factor against the column strip error
+\eqn{Environment \times Replication \times Column}, and their interaction
+against the intersection (residual) error. The interaction is therefore
+estimated with the greatest precision, which is the characteristic merit of
+the design.
+
+With \eqn{l} environments, \eqn{r} replications, \eqn{a} row levels and
+\eqn{b} column levels the three errors carry \eqn{l(r-1)(a-1)},
+\eqn{l(r-1)(b-1)} and \eqn{l(r-1)(a-1)(b-1)} degrees of freedom.
+
+Homogeneity of error variances is assessed for all three strata: the main
+Bartlett test uses the intersection error mean squares, and the row strip
+and column strip error mean squares are tested separately and reported in
+\code{Bartlett_Test$other_strata}.
+
+Aitken's transformation, when applied, divides each observation by the
+square root of the \emph{intersection error mean square} of its own
+environment, matching the definition used by the other functions in the
+package. The lookup is by environment label, so it is unaffected by the row
+order of \code{data}.
 }
 \examples{
-# Creating a sample dataset for Pooled Strip Plot Design (StPD)
-df <- data.frame(
-  Location = factor(rep(c("Londan", "Agumbe"), each = 12)),  # Locations
-  Replication = factor(rep(c(1, 2), each = 6, times = 2)),  # Replications
-  RowFactor = factor(rep(c(1, 2), each = 3, times = 4)),  # Row factor
-  ColumnFactor = factor(rep(1:3, times = 8)),  # Column factor
-  Yield = c(4940, 4810, 5150, 4900, 4920, 5070, 
-            4830, 5110, 4920, 5020, 5110, 5230,
-            4964, 4997, 5011, 5102, 4858, 4888, 
-            5100, 5165, 4965, 5113, 5086, 5176)  # Yield values
-)
+data(stpd_example)
+out <- PooledStPD(stpd_example, Response = "Yield", Location = "Location",
+                  Replication = "Replication", RowFactor = "RowFactor",
+                  ColumnFactor = "ColumnFactor", alpha = 0.05,
+                  Mult_Comp_Test = 1)
+out
+out$Pooled_ANOVA
 
-# Running PooledStPD function on the dataset
-out <- PooledStPD(df, "Yield", "Location", "Replication", "RowFactor", "ColumnFactor", 0.05, 1)
-
-# Print results
-print(out)
 }
 \references{
-Dean A, Voss D, Draguljic D (2017)<doi:10.1007/978-3-319-52250-0>.
+Aitken, A. C. (1935). On least squares and linear combination of
+observations. \emph{Proceedings of the Royal Society of Edinburgh},
+55, 42--48. \doi{10.1017/S0370164600014346}
 
-Ruíz JS, López OAM, Crossa J (2024)<doi:10.1007/978-3-031-65575-3>.
+Bartlett, M. S. (1937). Properties of sufficiency and statistical tests.
+\emph{Proceedings of the Royal Society of London A}, 160, 268--282.
+\doi{10.1098/rspa.1937.0109}
+
+Cochran, W. G. and Cox, G. M. (1957). \emph{Experimental Designs},
+2nd ed. John Wiley and Sons, New York.
+
+Dean, A., Voss, D. and Draguljic, D. (2017). \emph{Design and Analysis of
+Experiments}, 2nd ed. Springer, Cham. \doi{10.1007/978-3-319-52250-0}
+
+Gomez, K. A. and Gomez, A. A. (1984). \emph{Statistical Procedures for
+Agricultural Research}, 2nd ed. John Wiley and Sons, New York.
+}
+\seealso{
+\code{\link{PooledCRD}}, \code{\link{PooledRBD}},
+  \code{\link{PooledLSD}}, \code{\link{PooledSPD}}
 }

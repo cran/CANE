@@ -1,0 +1,262 @@
+---
+title: "Pooled analysis of multi-environment trials with CANE"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Pooled analysis of multi-environment trials with CANE}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7)
+options(width = 95)
+```
+
+```{r}
+library(CANE)
+```
+
+## The problem
+
+A single experiment at one site in one season answers a narrow question. Crop
+improvement and agronomy therefore repeat the same experiment across locations,
+seasons or years, and the quantity of interest becomes the
+treatment-by-environment interaction: do treatments rank consistently, or does
+the best treatment depend on where and when it is grown?
+
+Pooling such a series is not simply a matter of fitting one larger model. The
+classical workflow has four prerequisites, and each is easy to get wrong:
+
+1. each environment must first be analysed on its own, with every effect tested
+   against the error term that the design assigns to it;
+2. the error variances of the environments must be compared, because
+   heterogeneous errors invalidate the pooled F-tests;
+3. if they are heterogeneous, the data must be rescaled before pooling; and
+4. the pooled treatment means must be separated using the correct error
+   stratum, and interpreted in the light of the interaction.
+
+`CANE` performs all four in one design-specific function call.
+
+## The five functions
+
+```{r}
+data.frame(
+  Design = c("Completely randomised", "Randomised block", "Latin square",
+             "Split plot", "Strip plot"),
+  Function = c("PooledCRD()", "PooledRBD()", "PooledLSD()", "PooledSPD()",
+               "PooledStPD()"),
+  `Error strata` = c(1, 1, 1, 2, 3),
+  `Design arguments` = c("-", "Replication", "Row, Column",
+                         "Replication, MainPlot, SubPlot",
+                         "Replication, RowFactor, ColumnFactor"),
+  check.names = FALSE)
+```
+
+All five share the same interface: `data`, `Response`, `Location`, the
+design-specific factors, `alpha`, `Mult_Comp_Test`, and optionally `transform`
+and `env_effect`. There is no omnibus function that handles every design; the
+user chooses the function matching the design that was actually conducted.
+
+## A worked randomised block series
+
+The `sugarcane` dataset holds commercial cane sugar yield (t/ha) of 18
+genotypes grown in a randomised block design with two replications at two
+locations over three crop cycles, giving six environments.
+
+```{r}
+data(sugarcane)
+str(sugarcane)
+with(sugarcane, table(env, rep))
+```
+
+```{r}
+fit <- PooledRBD(sugarcane, Response = "ccsy", Location = "env",
+                 Treatment = "gen", Replication = "rep",
+                 alpha = 0.05, Mult_Comp_Test = 1)
+```
+
+### Step 1: the environments on their own
+
+```{r}
+fit$Individual_ANOVA[["SGA-IP"]]
+```
+
+The error mean squares of the six environments are what the next step compares:
+
+```{r}
+fit$Environment_Key
+```
+
+### Step 2: are the error variances homogeneous?
+
+```{r}
+fit$Bartlett_Test
+fit$Levene_Test
+```
+
+The largest error mean square is more than a hundred times the smallest, so the
+error variances are clearly heterogeneous. Bartlett's test is sensitive to
+non-normality, which is why `CANE` reports the median-centred Brown-Forsythe
+form of Levene's test beside it, and the environment-wise Shapiro-Wilk tests as
+well:
+
+```{r}
+fit$Normality_Test
+```
+
+Both tests agree here, so the decision to rescale is secure. When they
+disagree, prefer Levene, and use `transform = "always"` or
+`transform = "never"` to take the decision yourself rather than leaving it to a
+threshold.
+
+### Step 3: the transformation
+
+```{r}
+fit$Transformation$applied
+cat(fit$Transformation$reason)
+```
+
+Aitken's transformation divides each observation by the square root of the
+error mean square of **its own** environment. That yields a useful
+self-check: after the transformation each environment contributes an error sum
+of squares equal to its own error degrees of freedom, so the pooled error mean
+square must come out at exactly 1.
+
+```{r}
+cat(fit$Transformation$diagnostic$note)
+```
+
+### Step 4: the pooled analysis
+
+```{r}
+fit$Pooled_ANOVA
+```
+
+The `Error` column names the mean square used as the denominator of each
+F-test. In a randomised block series the environment main effect is tested
+against the replication-within-environment mean square, because replications
+are the units within which environments are compared; the treatment effect and
+the interaction are tested against the pooled error.
+
+Note the caveat attached to the environment main effect on a transformed
+scale: each environment has been divided by its own error standard deviation,
+so that term is no longer expressed in t/ha and is not interpretable as a
+yield difference. Interpretation belongs to the treatment and interaction
+terms.
+
+### Step 5: separating the treatment means
+
+```{r}
+fit$Treatments_Comparison
+```
+
+Because the analysis was carried out on the transformed scale, the means in
+the `Mean` column and the grouping letters both refer to that scale. The
+arithmetic means on the original scale are given alongside, for reporting in
+t/ha. They are not an inverse transformation: no single multiplier inverts
+Aitken's rescaling, because each environment was divided by a different
+constant.
+
+### The interaction matters
+
+```{r}
+fit$GEI_Note
+```
+
+The interaction is significant, so the pooled ranking conceals genotypes that
+excel in some environments and not others. The environment-wise comparisons
+are already in the object:
+
+```{r}
+fit$Location_wise[["TCSM-IP"]]$groups[1:5, ]
+```
+
+## Designs with more than one error stratum
+
+A split plot design has two error terms and a strip plot design three. This is
+where the choice of denominator is not a detail: the main plot effect of a
+split plot tested against the subplot error is simply the wrong test.
+
+```{r}
+data(spd_example)
+sp <- PooledSPD(spd_example, "Yield", "Location", "Replication", "MainPlot",
+                "SubPlot", 0.05, 1)
+sp$Pooled_ANOVA
+```
+
+Mean separation follows the same logic. Main plot means are compared with the
+main plot error, subplot means with the subplot error:
+
+```{r}
+sp$Treatments_Comparison$MainPlot$statistics
+sp$Treatments_Comparison$SubPlot$statistics
+```
+
+The strip plot design returns three sets of comparisons, one per stratum:
+
+```{r}
+data(stpd_example)
+st <- PooledStPD(stpd_example, "Yield", "Location", "Replication", "RowFactor",
+                 "ColumnFactor", 0.05, 1)
+st$Pooled_ANOVA
+names(st$Treatments_Comparison)
+```
+
+## Choosing a multiple comparison procedure
+
+`Mult_Comp_Test = 1` gives Tukey's HSD, which controls the family-wise error
+rate over all pairwise comparisons and is the sensible default when all
+pairwise differences are of interest. `2` gives Duncan's multiple range test,
+whose graduated protection levels buy power at the cost of weaker error
+control. `3` gives Fisher's LSD, which makes no adjustment at all; with
+\eqn{t} means it conducts \eqn{t(t-1)/2} independent tests at level
+\eqn{\alpha}, so the chance of at least one false declaration grows quickly.
+`CANE` warns when LSD is requested for more than three treatments. Reserve it
+for a small number of comparisons planned before the data were seen.
+
+## Fixed or random environments
+
+By default environments are treated as fixed, which is appropriate when they
+are a specific set of target sites or seasons. If the environments are better
+regarded as a sample from a wider population to which the conclusion should
+generalise, the treatment main effect should be tested against the
+treatment-by-environment interaction:
+
+```{r}
+fr <- PooledRBD(sugarcane, "ccsy", "env", "gen", "rep", 0.05, 1,
+                env_effect = "random")
+r <- fr$Pooled_ANOVA
+r[r$Source %in% c("Treatment", "Treatment x Env"), ]
+```
+
+The pooled comparison of means then uses the same mean square, so the grouping
+letters and the F-test rest on the same denominator:
+
+```{r}
+fr$Treatments_Comparison$parameters[, c("test", "error_stratum", "scale")]
+```
+
+## What CANE is not for
+
+`CANE` implements the fixed-effects pooled analysis of a *balanced* series of
+experiments. It is deliberately narrow. For
+
+* unbalanced series, or treatment sets that only partly overlap between
+  environments, use a mixed-model package such as **nlme** or **lme4**, which
+  handle missing cells properly;
+* augmented designs, in which a few checks are replicated and the test entries
+  are not, use **augmentedRCBD** (archived on CRAN in April 2026 for an
+  administrative reason; it remains installable from its own repository);
+* the single-trial stage of a mixed-model pipeline, use **statgenSTA**;
+* explicit modelling of heterogeneous variances or of a spatial covariance
+  structure, use **nlme**, **lme4**, **sommer** or **asreml**;
+* multiplicative decomposition of the interaction and stability analysis
+  (AMMI, GGE biplots, Shukla's variance, Eberhart-Russell regression), use
+  **metan** or **ammistability**;
+* best linear unbiased prediction of genotype effects for selection, use a
+  mixed-model package.
+
+The pooled ANOVA is the first step of a multi-environment analysis, not the
+last one. Its value is that it tests the main effects and the interaction
+exactly and transparently, which tells you whether the more elaborate analyses
+are worth running.
