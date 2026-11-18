@@ -41,9 +41,9 @@ Each call performs:
     test or Fisher’s LSD) using the error mean square and degrees of
     freedom of the stratum in which the compared factor belongs.
 
-When a treatment-by-environment interaction is significant, the result
-carries a note pointing to the environment-wise comparisons, which are
-always returned.
+The environment-wise analysis of variance and comparison of means are
+printed for every environment alongside the pooled analysis, so that
+environment-specific response is not hidden by the pooled grouping.
 
 ## Installation
 
@@ -58,7 +58,7 @@ remotes::install_github("Vinayaka11442/CANE")
 
 ## Example
 
-Commercial cane sugar yield of 18 sugarcane genotypes in a randomised
+Commercial cane sugar yield of 18 sugarcane genotypes (coded G1 to G18) in a randomised
 block design with two replications in six environments:
 
 ``` r
@@ -97,15 +97,17 @@ fit$Pooled_ANOVA
 #> 'Error' names the mean square used as the denominator of each F-test.
 head(fit$Treatments_Comparison$groups)
 #>   Treatment     Mean Groups Mean_original_scale
-#> 1  Co 12009 13.93197      a            15.89367
-#> 2  Co 16018 13.66819      a            15.59433
-#> 3  Co 17012 12.84143     ab            15.19867
-#> 4  Co 14027 12.63899     ab            15.27950
-#> 5  Co 12008 11.83662     bc            12.86358
-#> 6  Co 86032 11.80427    bcd            14.23675
+#> 1        G2 13.93197      a            15.89367
+#> 2       G10 13.66819      a            15.59433
+#> 3       G14 12.84143     ab            15.19867
+#> 4        G5 12.63899     ab            15.27950
+#> 5        G1 11.83662     bc            12.86358
+#> 6       G18 11.80427    bcd            14.23675
 ```
 
-`print(fit)` shows the complete analysis. The error variances are
+`print(fit)` shows the complete analysis, including the analysis of
+variance and the comparison of means (with the coefficient of variation
+and the critical value of the test) within each environment. The error variances are
 strongly heterogeneous here, so the pooled analysis is carried out on
 the Aitken-transformed scale; the grouping letters refer to that scale,
 and the arithmetic means on the original scale are reported alongside

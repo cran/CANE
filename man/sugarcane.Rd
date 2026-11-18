@@ -11,7 +11,7 @@ A data frame with 216 rows and 6 variables:
   \item{loc}{Factor with 2 levels, \code{SGA} and \code{TCSM}.}
   \item{crop}{Factor with 3 levels, \code{IP}, \code{IIP} and \code{R}.}
   \item{rep}{Factor with 2 levels, the replication (block) within environment.}
-  \item{gen}{Factor with 18 levels, the genotype.}
+  \item{gen}{Factor with 18 levels, the genotype, coded \code{G1} to \code{G18}.}
   \item{ccsy}{Numeric, commercial cane sugar yield in t/ha.}
 }
 }

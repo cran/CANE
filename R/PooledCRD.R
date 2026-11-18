@@ -67,7 +67,10 @@
 #'     \item{\code{Design}}{Name of the design analysed.}
 #'     \item{\code{Individual_ANOVA}}{List of environment-wise ANOVA tables.}
 #'     \item{\code{Location_wise}}{Environment-wise multiple comparisons, each
-#'       computed from the error mean square of that environment.}
+#'       computed from the error mean square of that environment, with the
+#'       grand mean, the coefficient of variation and the critical value of the
+#'       procedure (HSD, LSD or Duncan's critical ranges). Printed, with the
+#'       environment-wise ANOVA, for every environment.}
 #'     \item{\code{Bartlett_Test}}{Bartlett's test on the error mean squares.
 #'       For split plot and strip plot designs, element \code{other_strata}
 #'       gives the same test for the main plot or strip error strata.}
@@ -83,7 +86,8 @@
 #'       given on the transformed scale (on which the test was performed) and
 #'       the arithmetic means on the original scale are reported alongside.}
 #'     \item{\code{GEI_Note}}{Advice issued when any interaction of a treatment
-#'       factor with environment is significant, naming the terms concerned.}
+#'       factor with environment is significant, naming the terms concerned.
+#'       Returned in the object but not printed.}
 #'     \item{\code{Environment_Key}}{Mapping of environment levels to their
 #'       error mean square and error degrees of freedom.}
 #'     \item{\code{Settings}}{Arguments and software versions used.}

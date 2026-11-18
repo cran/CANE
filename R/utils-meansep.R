@@ -167,7 +167,7 @@
     p.value = as.vector(pval),
     row.names = NULL, stringsAsFactors = FALSE)
 
-  structure(list(
+  out <- list(
     statistics = data.frame(MSerror = MSerror, Df = DFerror, Mean = mean(y),
                             CV = 100 * sqrt(MSerror) / mean(y),
                             Critical_difference = msd, row.names = NULL),
@@ -175,6 +175,15 @@
                             critical_value = critval, alpha = alpha,
                             error_stratum = stratum, scale = scale,
                             row.names = NULL, stringsAsFactors = FALSE),
-    means = means, groups = groups, comparison = comparison),
-    class = "cane_comparison")
+    means = means, groups = groups, comparison = comparison)
+  ## Duncan's test has one critical range for each number of means spanned:
+  ## report all of them (the shortest significant ranges R_p, p = 2, ..., t).
+  if (Mult_Comp_Test == 2) {
+    p_span <- seq.int(2L, max(2L, ntr))
+    R_p <- vapply(p_span, crit, numeric(1))
+    out$critical_ranges <- data.frame(p = p_span,
+                                      Studentized_range = R_p / sqrt(MSerror / r),
+                                      Critical_range = R_p, row.names = NULL)
+  }
+  structure(out, class = "cane_comparison")
 }

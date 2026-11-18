@@ -1,7 +1,7 @@
 # tests/testthat/test-CANE.R
 # ---------------------------------------------------------------------------
 # Tests for the CANE package (Comprehensive Groups of Experiments Analysis
-# for Numerous Environments), version 0.2.0
+# for Numerous Environments), version 0.2.1
 #
 # Scope of these tests:
 #   * every exported pooled-analysis function runs on its documented example

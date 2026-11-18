@@ -52,21 +52,51 @@ print.cane_anova <- function(x, digits = 4, ...) {
 #' @export
 print.cane_comparison <- function(x, digits = 4, ...) {
   p <- x$parameters
+  s <- x$statistics
   cat("Multiple comparison of means\n")
   cat("  Procedure     : ", p$test, "\n", sep = "")
   cat("  Error stratum : ", p$error_stratum, "  (MSerror = ",
-      signif(x$statistics$MSerror, digits), " on ", x$statistics$Df, " df)\n", sep = "")
+      signif(s$MSerror, digits), " on ", s$Df, " df)\n", sep = "")
   cat("  Scale         : ", p$scale, "\n", sep = "")
   cat("  alpha = ", p$alpha, " | treatments = ", p$ntr,
-      " | replication = ", signif(p$r, digits),
-      " | critical difference = ", signif(x$statistics$Critical_difference, digits),
-      "\n\n", sep = "")
+      " | replication = ", signif(p$r, digits), "\n", sep = "")
+  cat("  Grand mean = ", signif(s$Mean, digits), sep = "")
+  if (identical(p$scale, "original"))
+    cat(" | CV = ", formatC(s$CV, format = "f", digits = 2), " %", sep = "")
+  cat("\n")
+  .cane_print_critical(x, digits)
+  cat("\n")
   g <- x$groups
   num <- vapply(g, is.numeric, logical(1))
   g[num] <- lapply(g[num], function(z) round(z, digits))
   print(g, row.names = FALSE)
   cat("\nMeans sharing a letter do not differ significantly at alpha = ", p$alpha, ".\n", sep = "")
   invisible(x)
+}
+
+#' @keywords internal
+#' @noRd
+.cane_print_critical <- function(x, digits = 4) {
+  p <- x$parameters
+  s <- x$statistics
+  if (grepl("Tukey", p$test)) {
+    cat("  Studentized range q(", p$alpha, "; ", p$ntr, ", ", s$Df, ") = ",
+        signif(p$critical_value, digits), " | HSD = ",
+        signif(s$Critical_difference, digits), "\n", sep = "")
+  } else if (grepl("LSD", p$test)) {
+    cat("  t(", p$alpha / 2, "; ", s$Df, ") = ", signif(p$critical_value, digits),
+        " | LSD (CD) = ", signif(s$Critical_difference, digits), "\n", sep = "")
+  } else {
+    cr <- x$critical_ranges
+    if (is.null(cr)) {
+      cat("  Largest critical range = ", signif(s$Critical_difference, digits), "\n", sep = "")
+    } else {
+      cat("  DMRT shortest significant ranges R_p (p = number of means spanned):\n")
+      txt <- paste0("p = ", cr$p, ": ", signif(cr$Critical_range, digits))
+      cat(strwrap(paste(txt, collapse = "; "), width = 76, prefix = "    "), sep = "\n")
+    }
+  }
+  invisible(NULL)
 }
 
 #' @rdname cane-methods
@@ -113,6 +143,23 @@ print.cane <- function(x, digits = 4, ...) {
   k$Error_MS <- signif(k$Error_MS, digits)
   print(k, row.names = FALSE)
 
+  cat("\nENVIRONMENT-WISE ANALYSIS OF VARIANCE AND COMPARISON OF MEANS",
+      "  (original scale)\n", sep = "")
+  for (e in names(x$Individual_ANOVA)) {
+    cat("\n", strrep("-", 78), "\nEnvironment: ", e, "\n", strrep("-", 78), "\n", sep = "")
+    print(x$Individual_ANOVA[[e]], digits = digits)
+    lw <- x$Location_wise[[e]]
+    if (inherits(lw, "cane_comparison")) {
+      cat("\n"); print(lw, digits = digits)
+    } else if (length(lw)) {
+      for (nm in names(lw)) {
+        cat("\n-- ", nm, " --\n", sep = ""); print(lw[[nm]], digits = digits)
+      }
+    } else {
+      cat("\nNo comparison of means is available for this environment.\n")
+    }
+  }
+
   cat("\nHOMOGENEITY OF ERROR VARIANCES\n")
   print(x$Bartlett_Test, digits = digits)
   if (!is.null(x$Levene_Test))
@@ -144,8 +191,6 @@ print.cane <- function(x, digits = 4, ...) {
   tc <- x$Treatments_Comparison
   if (inherits(tc, "cane_comparison")) print(tc, digits = digits) else
     for (nm in names(tc)) { cat("\n-- ", nm, " --\n", sep = ""); print(tc[[nm]], digits = digits) }
-
-  if (!is.null(x$GEI_Note)) { cat("\nINTERPRETATION\n"); print(x$GEI_Note) }
 
   cat("\nComponents available: ", paste(setdiff(names(x), "Call"), collapse = ", "),
       "\n", sep = "")

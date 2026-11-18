@@ -608,13 +608,13 @@ different statistic.</p>
 <span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a>rv <span class="ot">&lt;-</span> <span class="fu">unlist</span>(res_list)</span>
 <span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a>gl <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">levels</span>(sugarcane<span class="sc">$</span>env), <span class="at">times =</span> <span class="fu">vapply</span>(res_list, length, <span class="dv">1</span><span class="dt">L</span>))</span>
 <span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
-<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a>  <span class="at">method =</span> <span class="fu">c</span>(<span class="st">&quot;CANE 0.2.0: on error mean squares, error df&quot;</span>,</span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a>  <span class="at">method =</span> <span class="fu">c</span>(<span class="st">&quot;CANE (&gt;= 0.2.0): on error mean squares, error df&quot;</span>,</span>
 <span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a>             <span class="st">&quot;CANE 0.1.1: bartlett.test() on stacked residuals&quot;</span>),</span>
 <span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a>  <span class="at">statistic =</span> <span class="fu">c</span>(<span class="fu">unname</span>(ob<span class="sc">$</span>Bartlett_Test<span class="sc">$</span>statistic),</span>
 <span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a>                <span class="fu">unname</span>(<span class="fu">bartlett.test</span>(rv, gl)<span class="sc">$</span>statistic)),</span>
 <span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a>  <span class="at">df_per_env =</span> <span class="fu">c</span>(<span class="fu">unique</span>(dfe), <span class="fu">length</span>(res_list[[<span class="dv">1</span>]]) <span class="sc">-</span> <span class="dv">1</span>))</span>
 <span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a><span class="co">#&gt;                                             method statistic df_per_env</span></span>
-<span id="cb8-29"><a href="#cb8-29" tabindex="-1"></a><span class="co">#&gt; 1      CANE 0.2.0: on error mean squares, error df  81.17245         17</span></span>
+<span id="cb8-29"><a href="#cb8-29" tabindex="-1"></a><span class="co">#&gt; 1 CANE (&gt;= 0.2.0): on error mean squares, error df  81.17245         17</span></span>
 <span id="cb8-30"><a href="#cb8-30" tabindex="-1"></a><span class="co">#&gt; 2 CANE 0.1.1: bartlett.test() on stacked residuals 169.06426         35</span></span></code></pre></div>
 </div>
 <div id="the-aitken-identity" class="section level2">

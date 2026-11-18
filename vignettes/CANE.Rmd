@@ -159,16 +159,17 @@ constant.
 
 ### The interaction matters
 
-```{r}
-fit$GEI_Note
-```
+The treatment-by-environment interaction is significant in the pooled
+analysis of variance, so the pooled ranking conceals genotypes that excel in
+some environments and not others. `print(fit)` therefore shows, for every
+environment, the environment-wise analysis of variance followed by the
+comparison of means within that environment, with the coefficient of
+variation and the critical value of the procedure. Both are also stored in the
+object; for one environment:
 
-The interaction is significant, so the pooled ranking conceals genotypes that
-excel in some environments and not others. The environment-wise comparisons
-are already in the object:
-
 ```{r}
-fit$Location_wise[["TCSM-IP"]]$groups[1:5, ]
+fit$Individual_ANOVA[["TCSM-IP"]]
+fit$Location_wise[["TCSM-IP"]]
 ```
 
 ## Designs with more than one error stratum

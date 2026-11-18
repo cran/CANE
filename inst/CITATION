@@ -12,6 +12,6 @@ bibentry(
                person(given = "P. Rama Chandra", family = "Prasad"),
                person(given = "L.N.", family = "Vinaykumar")),
   year     = "2026",
-  note     = "R package version 0.2.0",
+  note     = paste("R package version", meta$Version),
   url      = "https://CRAN.R-project.org/package=CANE"
 )

@@ -1,3 +1,33 @@
+# CANE 0.2.1
+
+This release changes the printed output and the coding of the case-study data.
+No statistical computation has changed: every analysis of variance, test,
+transformation and comparison of means gives the same numbers as in 0.2.0.
+
+## Printed output
+
+* `print()` now shows, for every environment, the environment-wise analysis of
+  variance followed by the comparison of treatment means within that
+  environment (the `Individual_ANOVA` and `Location_wise` components, which
+  were already returned but were not printed). For each comparison the output
+  gives the grand mean, the coefficient of variation (CV, %) and the critical
+  value of the procedure: the studentized range and Tukey's HSD, the t value
+  and Fisher's LSD (critical difference, CD), or Duncan's shortest significant
+  ranges R_p for p = 2, ..., t means. In split plot and strip plot designs the
+  CV and the critical values are given for each error stratum.
+
+* For Duncan's multiple range test the comparison object gains a
+  `critical_ranges` component with the studentized range and the critical
+  range for every number of means spanned.
+
+* The printed `INTERPRETATION` paragraph has been removed. The `GEI_Note`
+  component is still returned in the object.
+
+## Case-study data
+
+* The 18 genotypes of the `sugarcane` dataset are now coded `G1` to `G18`
+  (factor levels in that order). The observations are unchanged.
+
 # CANE 0.2.0
 
 This is a correctness release. Several defects in version 0.1.1 affected the

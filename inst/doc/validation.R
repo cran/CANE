@@ -174,7 +174,7 @@ res_list <- lapply(levels(sugarcane$env), function(e) {
 rv <- unlist(res_list)
 gl <- rep(levels(sugarcane$env), times = vapply(res_list, length, 1L))
 data.frame(
-  method = c("CANE 0.2.0: on error mean squares, error df",
+  method = c("CANE (>= 0.2.0): on error mean squares, error df",
              "CANE 0.1.1: bartlett.test() on stacked residuals"),
   statistic = c(unname(ob$Bartlett_Test$statistic),
                 unname(bartlett.test(rv, gl)$statistic)),
